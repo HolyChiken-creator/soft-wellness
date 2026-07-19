@@ -1,0 +1,2506 @@
+Создай в репозитории файл index.html, удали из него всё содержимое и вставь код целиком:
+
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#181b19">
+  <title>Soft Wellness</title>
+  <style>
+    :root{
+      color-scheme:dark;
+      --page:#f3eee7;
+      --app:#181b19;
+      --surface:#242826;
+      --surface2:#2b2f2d;
+      --surface3:#151816;
+      --line:rgba(255,255,255,.075);
+      --text:#f5f1ec;
+      --muted:#9da39e;
+      --peach:#ffa58f;
+      --peach2:#ef8b73;
+      --sage:#b5cfa1;
+      --blue:#9cbfd9;
+      --yellow:#e5c67a;
+      --danger:#ff8178;
+      --shadow:0 24px 70px rgba(31,24,20,.25);
+      --radius:22px;
+    }
+    *{
+      box-sizing:border-box;
+      -webkit-tap-highlight-color:transparent;
+    }
+    html,
+    body{
+      margin:0;
+      min-height:100%;
+      font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:var(--page);
+      color:var(--text);
+    }
+    button,
+    input,
+    select{
+      font:inherit;
+    }
+    button{
+      color:inherit;
+    }
+    body{
+      display:grid;
+      place-items:center;
+      padding:0;
+    }
+    .phone{
+      width:min(430px,100vw);
+      height:min(900px,100dvh);
+      background:var(--app);
+      position:relative;
+      overflow:hidden;
+      box-shadow:var(--shadow);
+      display:flex;
+      flex-direction:column;
+    }
+    @media(min-width:600px){
+      body{
+        padding:24px;
+      }
+      .phone{
+        border-radius:38px;
+        border:8px solid #111311;
+        height:min(900px,calc(100dvh - 48px));
+      }
+    }
+    .status{
+      height:34px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:8px 18px 0;
+      font-size:12px;
+      font-weight:700;
+      flex:0 0 auto;
+    }
+    .status .icons{
+      letter-spacing:2px;
+      font-size:11px;
+    }
+    .app-header{
+      height:58px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:0 16px;
+      flex:0 0 auto;
+      border-bottom:1px solid transparent;
+    }
+    .app-title{
+      font-size:22px;
+      font-weight:800;
+      letter-spacing:-.02em;
+    }
+    .icon-btn{
+      width:40px;
+      height:40px;
+      border:0;
+      border-radius:14px;
+      background:transparent;
+      display:grid;
+      place-items:center;
+      font-size:19px;
+      cursor:pointer;
+    }
+    .icon-btn:active{
+      background:rgba(255,255,255,.06);
+    }
+    .screen-wrap{
+      position:relative;
+      flex:1;
+      overflow:hidden;
+    }
+    .screen{
+      position:absolute;
+      inset:0;
+      overflow-y:auto;
+      padding:0 14px 96px;
+      display:none;
+      scrollbar-width:none;
+    }
+    .screen::-webkit-scrollbar{
+      display:none;
+    }
+    .screen.active{
+      display:block;
+    }
+    .date-strip{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:3px 2px 13px;
+    }
+    .date-strip button{
+      border:0;
+      background:transparent;
+      color:var(--muted);
+      font-size:20px;
+      width:36px;
+      height:36px;
+      border-radius:12px;
+    }
+    .date-label{
+      font-size:14px;
+      color:#e8e5e0;
+      font-weight:650;
+    }
+    .card{
+      background:linear-gradient(180deg,var(--surface2),var(--surface));
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:0 12px 28px rgba(0,0,0,.18);
+    }
+    .summary-card{
+      padding:16px;
+    }
+    .summary-top{
+      display:grid;
+      grid-template-columns:1fr auto;
+      align-items:center;
+      gap:14px;
+    }
+    .eyebrow{
+      font-size:13px;
+      color:#dedbd7;
+      margin-bottom:7px;
+      display:flex;
+      gap:7px;
+      align-items:center;
+    }
+    .kcal-main{
+      font-size:31px;
+      font-weight:800;
+      letter-spacing:-.04em;
+    }
+    .kcal-main small{
+      font-size:16px;
+      color:#d8d4d0;
+      font-weight:500;
+      letter-spacing:0;
+    }
+    .remain{
+      font-size:12px;
+      color:var(--muted);
+      margin-top:5px;
+    }
+    .ring{
+      width:84px;
+      height:84px;
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      position:relative;
+      background:conic-gradient(
+        var(--peach) calc(var(--p)*1%),
+        #404441 0
+      );
+    }
+    .ring:after{
+      content:"";
+      position:absolute;
+      inset:9px;
+      border-radius:50%;
+      background:#242826;
+    }
+    .ring b{
+      position:relative;
+      z-index:1;
+      font-size:20px;
+    }
+    .macro-row{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:12px;
+      border-top:1px solid var(--line);
+      margin-top:14px;
+      padding-top:13px;
+    }
+    .macro small{
+      display:block;
+      color:#b9bdb8;
+      font-size:11px;
+      margin-bottom:5px;
+    }
+    .macro b{
+      font-size:13px;
+    }
+    .progress{
+      height:5px;
+      background:#404441;
+      border-radius:99px;
+      margin-top:8px;
+      overflow:hidden;
+    }
+    .progress > i{
+      display:block;
+      height:100%;
+      width:var(--w);
+      background:var(--c);
+      border-radius:inherit;
+    }
+    .section-label{
+      font-size:13px;
+      color:#d6d2ce;
+      margin:16px 4px 9px;
+      font-weight:700;
+    }
+    .meal-card{
+      background:linear-gradient(180deg,#292d2b,#222624);
+      border:1px solid var(--line);
+      border-radius:18px;
+      margin-bottom:9px;
+      overflow:hidden;
+    }
+    .meal-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:13px;
+    }
+    .meal-left{
+      display:flex;
+      align-items:center;
+      gap:11px;
+      min-width:0;
+    }
+    .meal-ico{
+      width:36px;
+      height:36px;
+      border-radius:12px;
+      background:#333834;
+      display:grid;
+      place-items:center;
+      font-size:18px;
+    }
+    .meal-title b{
+      display:block;
+      font-size:15px;
+    }
+    .meal-title small{
+      display:block;
+      color:var(--muted);
+      font-size:11px;
+      margin-top:3px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width:220px;
+    }
+    .meal-kcal{
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .meal-kcal span{
+      text-align:right;
+      font-size:12px;
+      color:#dcd8d4;
+    }
+    .round-plus{
+      width:34px;
+      height:34px;
+      border:0;
+      border-radius:50%;
+      background:#3a3f3b;
+      color:#ddd;
+      font-size:20px;
+      cursor:pointer;
+    }
+    .entry-list{
+      border-top:1px solid var(--line);
+      display:none;
+    }
+    .meal-card.open .entry-list{
+      display:block;
+    }
+    .entry{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:11px 13px;
+      border-top:1px solid rgba(255,255,255,.045);
+      cursor:pointer;
+    }
+    .entry:first-child{
+      border-top:0;
+    }
+    .entry b{
+      font-size:13px;
+      display:block;
+    }
+    .entry small{
+      font-size:11px;
+      color:var(--muted);
+      display:block;
+      margin-top:3px;
+    }
+    .entry > span{
+      font-size:12px;
+      color:#e8e3de;
+      white-space:nowrap;
+    }
+    .empty-state{
+      padding:14px;
+      color:var(--muted);
+      font-size:12px;
+      text-align:center;
+    }
+    .bottom-nav{
+      position:absolute;
+      left:10px;
+      right:10px;
+      bottom:10px;
+      height:68px;
+      border-radius:25px;
+      background:rgba(36,40,38,.94);
+      border:1px solid rgba(255,255,255,.08);
+      backdrop-filter:blur(20px);
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      z-index:30;
+      box-shadow:0 16px 40px rgba(0,0,0,.35);
+    }
+    .nav{
+      border:0;
+      background:transparent;
+      color:#9aa09b;
+      border-radius:20px;
+      font-size:10px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:4px;
+      cursor:pointer;
+    }
+    .nav .nicon{
+      font-size:20px;
+      line-height:1;
+    }
+    .nav.active{
+      color:var(--peach);
+    }
+    .search{
+      display:flex;
+      gap:9px;
+      margin-bottom:12px;
+    }
+    .search input{
+      flex:1;
+      background:#222624;
+      border:1px solid var(--line);
+      border-radius:15px;
+      padding:13px 14px;
+      color:var(--text);
+      outline:none;
+    }
+    .search input:focus{
+      border-color:rgba(255,165,143,.45);
+    }
+    .tabs{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:6px;
+      background:#222624;
+      padding:5px;
+      border-radius:15px;
+      margin-bottom:12px;
+    }
+    .tab{
+      border:0;
+      background:transparent;
+      padding:9px;
+      border-radius:11px;
+      color:var(--muted);
+      cursor:pointer;
+    }
+    .tab.active{
+      background:var(--peach);
+      color:#2b1a17;
+      font-weight:800;
+    }
+    .product-list{
+      display:grid;
+      gap:9px;
+    }
+    .product-row{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:11px;
+      border-radius:17px;
+      background:linear-gradient(180deg,#292d2b,#222624);
+      border:1px solid var(--line);
+      cursor:pointer;
+    }
+    .food-dot{
+      width:52px;
+      height:52px;
+      border-radius:16px;
+      background:linear-gradient(145deg,#d8b58c,#8f6b4e);
+      display:grid;
+      place-items:center;
+      font-size:26px;
+      flex:0 0 auto;
+    }
+    .product-row b{
+      display:block;
+      font-size:14px;
+    }
+    .product-row small{
+      display:block;
+      color:var(--muted);
+      font-size:11px;
+      margin-top:5px;
+    }
+    .product-row .chev{
+      margin-left:auto;
+      color:#777d78;
+    }
+    .selected-product{
+      padding:14px;
+      margin-bottom:11px;
+    }
+    .sel-head{
+      display:flex;
+      gap:12px;
+      align-items:center;
+    }
+    .sel-head .food-dot{
+      width:64px;
+      height:64px;
+    }
+    .sel-head b{
+      font-size:16px;
+    }
+    .sel-head small{
+      display:block;
+      color:var(--muted);
+      margin-top:5px;
+      font-size:12px;
+    }
+    .portion{
+      padding:14px;
+      margin-bottom:11px;
+    }
+    .portion-title{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      font-size:13px;
+      margin-bottom:12px;
+    }
+    .portion-control{
+      display:grid;
+      grid-template-columns:46px 1fr 46px;
+      align-items:center;
+      gap:10px;
+    }
+    .portion-control button{
+      height:46px;
+      border:0;
+      border-radius:15px;
+      background:#353a36;
+      font-size:22px;
+    }
+    .grams-box{
+      text-align:center;
+      font-size:30px;
+      font-weight:800;
+    }
+    .grams-box small{
+      font-size:13px;
+      color:var(--muted);
+      font-weight:500;
+    }
+    .portion input[type=range]{
+      width:100%;
+      accent-color:var(--peach);
+      margin-top:13px;
+    }
+    .nutrition{
+      padding:14px;
+      margin-bottom:11px;
+    }
+    .nutrition-head{
+      display:flex;
+      justify-content:space-between;
+      font-size:13px;
+      margin-bottom:12px;
+    }
+    .nutrition-grid{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:8px;
+    }
+    .nut{
+      text-align:center;
+      border-right:1px solid var(--line);
+    }
+    .nut:last-child{
+      border-right:0;
+    }
+    .nut small{
+      display:block;
+      color:var(--muted);
+      font-size:10px;
+      margin-bottom:6px;
+    }
+    .nut b{
+      font-size:17px;
+    }
+    .meal-pills{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:6px;
+      margin:10px 0;
+    }
+    .pill{
+      border:1px solid var(--line);
+      background:#252926;
+      padding:9px 5px;
+      border-radius:13px;
+      color:#c1c5c0;
+      font-size:11px;
+    }
+    .pill.active{
+      background:rgba(255,165,143,.16);
+      border-color:rgba(255,165,143,.42);
+      color:var(--peach);
+    }
+    .primary{
+      width:100%;
+      border:0;
+      border-radius:16px;
+      background:linear-gradient(135deg,var(--peach),var(--peach2));
+      color:#2b1814;
+      font-weight:900;
+      padding:15px;
+      cursor:pointer;
+      box-shadow:0 12px 28px rgba(239,139,115,.18);
+    }
+    .secondary{
+      width:100%;
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:#252926;
+      color:#dedad6;
+      font-weight:700;
+      padding:13px;
+      cursor:pointer;
+      margin-top:9px;
+    }
+    .reports-tabs{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:5px;
+      background:#232725;
+      border-radius:15px;
+      padding:5px;
+      margin-bottom:12px;
+    }
+    .reports-tabs button{
+      border:0;
+      background:transparent;
+      color:var(--muted);
+      padding:8px 3px;
+      border-radius:10px;
+      font-size:11px;
+    }
+    .reports-tabs button.active{
+      background:var(--peach);
+      color:#2c1815;
+      font-weight:800;
+    }
+    .chart-card{
+      padding:15px;
+      margin-bottom:10px;
+    }
+    .chart-top{
+      display:flex;
+      justify-content:space-between;
+      align-items:end;
+      gap:10px;
+    }
+    .chart-top small{
+      color:var(--muted);
+    }
+    .weight-big{
+      font-size:29px;
+      font-weight:800;
+      margin-top:7px;
+    }
+    .delta{
+      color:var(--sage);
+      font-size:12px;
+    }
+    .chart{
+      height:135px;
+      margin-top:8px;
+      position:relative;
+    }
+    .chart svg{
+      width:100%;
+      height:100%;
+      overflow:visible;
+    }
+    .chart-labels{
+      display:flex;
+      justify-content:space-between;
+      color:#7f857f;
+      font-size:9px;
+      margin-top:-3px;
+    }
+    .avg-grid{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:7px;
+    }
+    .avg{
+      padding:12px 6px;
+      text-align:center;
+      background:#232725;
+      border-radius:14px;
+    }
+    .avg small{
+      display:block;
+      color:var(--muted);
+      font-size:9px;
+    }
+    .avg b{
+      display:block;
+      margin-top:7px;
+      font-size:16px;
+    }
+    .achievement{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:14px;
+    }
+    .badge{
+      width:42px;
+      height:42px;
+      border-radius:14px;
+      background:rgba(255,165,143,.12);
+      display:grid;
+      place-items:center;
+      font-size:20px;
+    }
+    .achievement b{
+      display:block;
+    }
+    .achievement small{
+      display:block;
+      color:var(--muted);
+      margin-top:4px;
+      font-size:11px;
+    }
+    .profile-card{
+      padding:14px;
+      margin-bottom:10px;
+    }
+    .profile-top{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+    .avatar{
+      width:58px;
+      height:58px;
+      border-radius:19px;
+      background:linear-gradient(145deg,#6d8168,#c99f85);
+      display:grid;
+      place-items:center;
+      font-size:28px;
+    }
+    .profile-top b{
+      display:block;
+      font-size:17px;
+    }
+    .profile-top small{
+      display:block;
+      color:var(--muted);
+      margin-top:4px;
+    }
+    .profile-actions{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:9px;
+      margin-top:13px;
+    }
+    .profile-actions button{
+      border:1px solid var(--line);
+      background:#252926;
+      border-radius:14px;
+      padding:11px;
+      color:#ddd;
+      cursor:pointer;
+    }
+    .settings{
+      display:grid;
+      gap:9px;
+    }
+    .setting{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:13px 14px;
+      background:#222624;
+      border:1px solid var(--line);
+      border-radius:16px;
+    }
+    .setting span{
+      font-size:13px;
+    }
+    .setting b{
+      font-size:13px;
+      color:var(--muted);
+    }
+    .overlay{
+      position:absolute;
+      inset:0;
+      background:rgba(8,10,9,.75);
+      backdrop-filter:blur(10px);
+      z-index:100;
+      display:none;
+      align-items:flex-end;
+    }
+    .overlay.show{
+      display:flex;
+    }
+    .dialog{
+      width:100%;
+      max-height:96%;
+      overflow-y:auto;
+      background:linear-gradient(180deg,#222724,#181c19);
+      border-radius:28px 28px 0 0;
+      border:1px solid var(--line);
+      padding:17px 16px calc(18px + env(safe-area-inset-bottom));
+      box-shadow:0 -24px 60px rgba(0,0,0,.45);
+      scrollbar-width:none;
+    }
+    .dialog::-webkit-scrollbar{
+      display:none;
+    }
+    .dialog-head{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .dialog h2{
+      font-size:26px;
+      margin:0;
+      letter-spacing:-.035em;
+      line-height:1.06;
+    }
+    .dialog h2 span{
+      color:var(--peach);
+    }
+    .dialog p{
+      color:#c3c8c3;
+      line-height:1.5;
+      font-size:13px;
+      margin:8px 0 0;
+    }
+    .close{
+      width:38px;
+      height:38px;
+      border:0;
+      border-radius:13px;
+      background:#303531;
+      font-size:17px;
+      flex:0 0 auto;
+    }
+    .hero-illustration{
+      height:210px;
+      border-radius:22px;
+      margin:13px 0;
+      background:#e8d8c9;
+      overflow:hidden;
+      position:relative;
+    }
+    .hero-illustration svg{
+      width:100%;
+      height:100%;
+      display:block;
+    }
+    .install-card{
+      padding:14px;
+    }
+    .device-tabs{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:7px;
+      margin:12px 0;
+    }
+    .device-tabs button{
+      border:1px solid var(--line);
+      background:#171a18;
+      border-radius:13px;
+      padding:11px;
+    }
+    .device-tabs button.active{
+      background:rgba(255,165,143,.13);
+      border-color:rgba(255,165,143,.4);
+      color:var(--peach);
+    }
+    .steps{
+      display:grid;
+      gap:8px;
+    }
+    .step{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      padding:11px;
+      background:#151816;
+      border-radius:14px;
+    }
+    .step i{
+      font-style:normal;
+      width:28px;
+      height:28px;
+      border-radius:10px;
+      background:#303531;
+      color:var(--sage);
+      display:grid;
+      place-items:center;
+      font-weight:800;
+      flex:0 0 auto;
+    }
+    .step span{
+      font-size:12px;
+      line-height:1.45;
+      color:#dbded9;
+    }
+    .dialog-actions{
+      display:grid;
+      grid-template-columns:1fr 1.4fr;
+      gap:9px;
+      margin-top:13px;
+    }
+    .dialog-actions button{
+      margin:0;
+    }
+    .form{
+      display:grid;
+      gap:11px;
+      margin-top:14px;
+    }
+    .field label{
+      display:block;
+      color:#cdd1cd;
+      font-size:12px;
+      margin:0 0 6px;
+    }
+    .field input{
+      width:100%;
+      border:1px solid var(--line);
+      background:#131614;
+      color:var(--text);
+      border-radius:15px;
+      padding:13px 14px;
+      outline:none;
+    }
+    .field input:focus{
+      border-color:rgba(255,165,143,.5);
+      box-shadow:0 0 0 4px rgba(255,165,143,.08);
+    }
+    .form-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+    .goal-preview{
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:8px;
+      margin:12px 0;
+    }
+    .goal-box{
+      padding:12px;
+      background:#151816;
+      border-radius:14px;
+    }
+    .goal-box small{
+      display:block;
+      color:var(--muted);
+      font-size:10px;
+    }
+    .goal-box b{
+      display:block;
+      font-size:20px;
+      margin-top:5px;
+    }
+    .danger{
+      color:var(--danger)!important;
+    }
+    .toast{
+      position:absolute;
+      left:50%;
+      top:44px;
+      transform:translate(-50%,-140%);
+      background:#f1e9e1;
+      color:#242622;
+      padding:11px 14px;
+      border-radius:13px;
+      font-weight:800;
+      font-size:12px;
+      z-index:200;
+      transition:.28s;
+      box-shadow:0 15px 40px rgba(0,0,0,.25);
+    }
+    .toast.show{
+      transform:translate(-50%,0);
+    }
+    .hidden{
+      display:none!important;
+    }
+  </style>
+</head>
+<body>
+  <div class="phone" id="app">
+    <div class="toast" id="toast">Сохранено</div>
+    <div class="status">
+      <span id="clock">9:41</span>
+      <span class="icons">●●● Wi-Fi ▰</span>
+    </div>
+    <header class="app-header">
+      <button class="icon-btn" id="headerLeft">☰</button>
+      <div class="app-title" id="headerTitle">Дневник</div>
+      <button class="icon-btn" id="headerRight">◫</button>
+    </header>
+    <div class="screen-wrap">
+      <section class="screen active" data-screen="diary">
+        <div class="date-strip">
+          <button id="prevDay">‹</button>
+          <div class="date-label" id="dateLabel">Сегодня</div>
+          <button id="nextDay">›</button>
+        </div>
+        <div class="card summary-card">
+          <div class="summary-top">
+            <div>
+              <div class="eyebrow">🔥 Калории</div>
+              <div class="kcal-main">
+                <span id="eatenKcal">0</span>
+                <small>
+                  / <span id="goalKcal">1955</span> ккал
+                </small>
+              </div>
+              <div class="remain" id="remainKcal">
+                Осталось 1955 ккал
+              </div>
+            </div>
+            <div class="ring" id="calRing" style="--p:0">
+              <b id="calPercent">0%</b>
+            </div>
+          </div>
+          <div class="macro-row">
+            <div class="macro">
+              <small>Белки</small>
+              <b id="proteinText">0 / 145 г</b>
+              <div class="progress">
+                <i
+                  id="proteinBar"
+                  style="--w:0%;--c:var(--sage)"
+                ></i>
+              </div>
+            </div>
+            <div class="macro">
+              <small>Жиры</small>
+              <b id="fatText">0 / 58 г</b>
+              <div class="progress">
+                <i
+                  id="fatBar"
+                  style="--w:0%;--c:var(--peach)"
+                ></i>
+              </div>
+            </div>
+            <div class="macro">
+              <small>Углеводы</small>
+              <b id="carbText">0 / 214 г</b>
+              <div class="progress">
+                <i
+                  id="carbBar"
+                  style="--w:0%;--c:var(--blue)"
+                ></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="section-label">Приёмы пищи</div>
+        <div id="mealCards"></div>
+      </section>
+      <section class="screen" data-screen="add">
+        <div class="tabs">
+          <button class="tab active" data-addtab="products">
+            Продукты
+          </button>
+          <button class="tab" data-addtab="custom">
+            Создать продукт
+          </button>
+        </div>
+        <div id="productsView">
+          <div class="search">
+            <input
+              id="searchInput"
+              placeholder="Поиск продукта"
+            >
+            <button class="icon-btn" id="scanBtn">▦</button>
+          </div>
+          <div class="product-list" id="productList"></div>
+        </div>
+        <div id="customView" class="hidden">
+          <div class="card profile-card">
+            <div class="form">
+              <div class="field">
+                <label>Название</label>
+                <input
+                  id="customName"
+                  placeholder="Например, домашняя овсянка"
+                >
+              </div>
+              <div class="form-grid">
+                <div class="field">
+                  <label>Ккал на 100 г</label>
+                  <input
+                    id="customCalories"
+                    type="number"
+                    min="0"
+                    value="100"
+                  >
+                </div>
+                <div class="field">
+                  <label>Белки, г</label>
+                  <input
+                    id="customProtein"
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value="0"
+                  >
+                </div>
+              </div>
+              <div class="form-grid">
+                <div class="field">
+                  <label>Жиры, г</label>
+                  <input
+                    id="customFat"
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value="0"
+                  >
+                </div>
+                <div class="field">
+                  <label>Углеводы, г</label>
+                  <input
+                    id="customCarbs"
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value="0"
+                  >
+                </div>
+              </div>
+              <button class="primary" id="saveCustom">
+                Сохранить продукт
+              </button>
+            </div>
+          </div>
+        </div>
+        <div id="selectedProductView" class="hidden">
+          <button
+            class="secondary"
+            id="backToProducts"
+            style="margin:0 0 10px"
+          >
+            ← Назад к продуктам
+          </button>
+          <div class="card selected-product">
+            <div class="sel-head">
+              <div class="food-dot" id="selectedEmoji">🍗</div>
+              <div>
+                <b id="selectedName">Куриное филе</b>
+                <small id="selectedPer100">
+                  На 100 г: 165 ккал
+                </small>
+              </div>
+            </div>
+          </div>
+          <div class="card portion">
+            <div class="portion-title">
+              <b>Порция</b>
+              <span>граммы</span>
+            </div>
+            <div class="portion-control">
+              <button id="minusGram">−</button>
+              <div class="grams-box">
+                <span id="gramsText">150</span>
+                <small>г</small>
+              </div>
+              <button id="plusGram">+</button>
+            </div>
+            <input
+              id="gramsRange"
+              type="range"
+              min="10"
+              max="500"
+              step="10"
+              value="150"
+            >
+          </div>
+          <div class="card nutrition">
+            <div class="nutrition-head">
+              <b>Итого в порции</b>
+              <span id="portionCalories">248 ккал</span>
+            </div>
+            <div class="nutrition-grid">
+              <div class="nut">
+                <small>Белки</small>
+                <b id="portionProtein">46,5</b>
+              </div>
+              <div class="nut">
+                <small>Жиры</small>
+                <b id="portionFat">4,5</b>
+              </div>
+              <div class="nut">
+                <small>Углеводы</small>
+                <b id="portionCarbs">0</b>
+              </div>
+              <div class="nut">
+                <small>Ккал</small>
+                <b id="portionKcal2">248</b>
+              </div>
+            </div>
+          </div>
+          <div class="section-label">Добавить в</div>
+          <div class="meal-pills" id="mealPills"></div>
+          <button class="primary" id="addToDiary">
+            Добавить в дневник
+          </button>
+        </div>
+      </section>
+      <section class="screen" data-screen="reports">
+        <div class="reports-tabs">
+          <button class="active">Неделя</button>
+          <button>Месяц</button>
+          <button>3 месяца</button>
+          <button>Год</button>
+        </div>
+        <div class="card chart-card">
+          <div class="chart-top">
+            <div>
+              <small>Динамика веса</small>
+              <div class="weight-big" id="reportWeight">72,4 кг</div>
+            </div>
+            <div class="delta" id="reportDelta">
+              Текущий вес
+            </div>
+          </div>
+          <div class="chart">
+            <svg
+              viewBox="0 0 320 130"
+              preserveAspectRatio="none"
+              id="weightChart"
+            ></svg>
+          </div>
+          <div class="chart-labels">
+            <span>Раньше</span>
+            <span>Сегодня</span>
+          </div>
+        </div>
+        <div class="section-label">
+          Средние показатели за 7 дней
+        </div>
+        <div class="avg-grid">
+          <div class="avg">
+            <small>Калории</small>
+            <b id="avgCal">0</b>
+          </div>
+          <div class="avg">
+            <small>Белки</small>
+            <b id="avgProtein">0</b>
+          </div>
+          <div class="avg">
+            <small>Жиры</small>
+            <b id="avgFat">0</b>
+          </div>
+          <div class="avg">
+            <small>Углеводы</small>
+            <b id="avgCarbs">0</b>
+          </div>
+        </div>
+        <div class="section-label">Достижения</div>
+        <div class="card achievement">
+          <div class="badge">🔥</div>
+          <div>
+            <b id="streakText">Начало пути</b>
+            <small id="streakSub">
+              Добавь первый продукт в дневник
+            </small>
+          </div>
+        </div>
+      </section>
+      <section class="screen" data-screen="profile">
+        <div class="card profile-card">
+          <div class="profile-top">
+            <div class="avatar">🌿</div>
+            <div>
+              <b id="profileName">Профиль</b>
+              <small id="profileBio">
+                Данные ещё не заполнены
+              </small>
+            </div>
+          </div>
+          <div class="profile-actions">
+            <button id="editProfile">Редактировать</button>
+            <button id="showInstall">Установка</button>
+          </div>
+        </div>
+        <div class="section-label">Цели на день</div>
+        <div class="settings">
+          <div class="setting">
+            <span>Калории</span>
+            <b id="profileCal">1955 ккал</b>
+          </div>
+          <div class="setting">
+            <span>Белки</span>
+            <b id="profileProtein">145 г</b>
+          </div>
+          <div class="setting">
+            <span>Жиры</span>
+            <b id="profileFat">58 г</b>
+          </div>
+          <div class="setting">
+            <span>Углеводы</span>
+            <b id="profileCarbs">214 г</b>
+          </div>
+        </div>
+        <div class="section-label">Данные</div>
+        <div class="settings">
+          <button class="setting" id="exportBtn">
+            <span>Экспорт резервной копии</span>
+            <b>↗</b>
+          </button>
+          <label class="setting" for="importFile">
+            <span>Импорт резервной копии</span>
+            <b>↙</b>
+          </label>
+          <input
+            class="hidden"
+            id="importFile"
+            type="file"
+            accept="application/json"
+          >
+          <button class="setting" id="resetOnboarding">
+            <span>Показать приветствие снова</span>
+            <b>›</b>
+          </button>
+          <button class="setting danger" id="clearData">
+            <span>Удалить все данные</span>
+            <b class="danger">×</b>
+          </button>
+        </div>
+      </section>
+    </div>
+    <nav class="bottom-nav">
+      <button class="nav active" data-nav="diary">
+        <span class="nicon">▣</span>
+        Дневник
+      </button>
+      <button class="nav" data-nav="add">
+        <span class="nicon">＋</span>
+        Добавить
+      </button>
+      <button class="nav" data-nav="reports">
+        <span class="nicon">▥</span>
+        Отчёты
+      </button>
+      <button class="nav" data-nav="profile">
+        <span class="nicon">♙</span>
+        Профиль
+      </button>
+    </nav>
+    <div class="overlay" id="onboardingOverlay">
+      <div class="dialog">
+        <div class="dialog-head">
+          <div>
+            <h2>
+              Добро пожаловать<br>
+              в <span>Soft Wellness</span> 🌿
+            </h2>
+            <p>
+              Ваш помощник в питании и заботе о себе.
+              Установите приложение на главный экран
+              для быстрого доступа.
+            </p>
+          </div>
+          <button class="close" id="closeOnboarding">×</button>
+        </div>
+        <div class="hero-illustration">
+          <svg
+            viewBox="0 0 430 210"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-label="Спокойная иллюстрация"
+          >
+            <rect width="430" height="210" fill="#ead9c8"/>
+            <circle cx="82" cy="64" r="44" fill="#d7c2a9" opacity=".65"/>
+            <path
+              d="M0 180 C70 130 115 145 150 210H0Z"
+              fill="#8b9e79"
+              opacity=".8"
+            />
+            <path
+              d="M430 175 C365 125 320 140 280 210H430Z"
+              fill="#8b9e79"
+              opacity=".72"
+            />
+            <circle cx="220" cy="73" r="31" fill="#d5aa8a"/>
+            <path
+              d="M189 75 C194 27 247 23 257 65 C244 47 207 45 189 75Z"
+              fill="#694638"
+            />
+            <path
+              d="M159 210 C167 128 190 104 220 104 C250 104 280 128 287 210Z"
+              fill="#70866c"
+            />
+            <path
+              d="M185 132 C202 148 237 148 255 132"
+              fill="none"
+              stroke="#5e7460"
+              stroke-width="22"
+              stroke-linecap="round"
+            />
+            <rect
+              x="209"
+              y="126"
+              width="38"
+              height="31"
+              rx="10"
+              fill="#4f6555"
+            />
+            <path
+              d="M246 132 C267 132 266 153 248 153"
+              fill="none"
+              stroke="#4f6555"
+              stroke-width="6"
+            />
+            <circle cx="209" cy="72" r="3" fill="#48372f"/>
+            <circle cx="232" cy="72" r="3" fill="#48372f"/>
+            <path
+              d="M211 86 Q220 93 231 86"
+              fill="none"
+              stroke="#7d5747"
+              stroke-width="3"
+              stroke-linecap="round"
+            />
+            <circle cx="340" cy="54" r="25" fill="#f6f0e7"/>
+            <path
+              d="M329 54 C334 43 345 44 350 53 C355 44 367 45 370 55 C372 67 355 75 350 80 C344 75 326 67 329 54Z"
+              fill="#f3a08c"
+            />
+          </svg>
+        </div>
+        <div class="card install-card">
+          <b>Добавьте на главный экран</b>
+          <div class="device-tabs">
+            <button data-device="ios">iPhone</button>
+            <button data-device="android">Android</button>
+          </div>
+          <div class="steps" id="installSteps"></div>
+        </div>
+        <div class="dialog-actions">
+          <button class="secondary" id="skipInstall">
+            Продолжить
+          </button>
+          <button class="primary" id="installButton">
+            Установить приложение
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="overlay" id="profileOverlay">
+      <div class="dialog">
+        <div class="dialog-head">
+          <div>
+            <h2>
+              Заполните <span>данные о себе</span>
+            </h2>
+            <p>
+              Имя, возраст, рост и вес сохраняются
+              только на этом устройстве. Цели
+              посчитаются автоматически.
+            </p>
+          </div>
+          <button class="close" id="closeProfile">×</button>
+        </div>
+        <div class="form">
+          <div class="field">
+            <label>Имя</label>
+            <input
+              id="inputName"
+              placeholder="Например, Михаил"
+            >
+          </div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Возраст</label>
+              <input
+                id="inputAge"
+                type="number"
+                min="14"
+                max="100"
+                value="30"
+              >
+            </div>
+            <div class="field">
+              <label>Рост, см</label>
+              <input
+                id="inputHeight"
+                type="number"
+                min="120"
+                max="230"
+                value="175"
+              >
+            </div>
+          </div>
+          <div class="field">
+            <label>Вес, кг</label>
+            <input
+              id="inputWeight"
+              type="number"
+              min="30"
+              max="300"
+              step="0.1"
+              value="72.4"
+            >
+          </div>
+        </div>
+        <div class="goal-preview">
+          <div class="goal-box">
+            <small>Калории</small>
+            <b id="previewCal">1955</b>
+          </div>
+          <div class="goal-box">
+            <small>Белки</small>
+            <b id="previewProtein">145 г</b>
+          </div>
+          <div class="goal-box">
+            <small>Жиры</small>
+            <b id="previewFat">58 г</b>
+          </div>
+          <div class="goal-box">
+            <small>Углеводы</small>
+            <b id="previewCarbs">214 г</b>
+          </div>
+        </div>
+        <button class="primary" id="saveProfile">
+          Сохранить и открыть дневник
+        </button>
+      </div>
+    </div>
+    <div class="overlay" id="entryOverlay">
+      <div class="dialog">
+        <div class="dialog-head">
+          <div>
+            <h2>
+              Изменить <span>запись</span>
+            </h2>
+            <p id="entryName">Продукт</p>
+          </div>
+          <button class="close" id="closeEntry">×</button>
+        </div>
+        <div class="form">
+          <div class="field">
+            <label>Количество, г</label>
+            <input
+              id="editGrams"
+              type="number"
+              min="1"
+              max="2000"
+            >
+          </div>
+        </div>
+        <div class="dialog-actions">
+          <button
+            class="secondary danger"
+            id="deleteEntry"
+          >
+            Удалить
+          </button>
+          <button class="primary" id="saveEntry">
+            Сохранить
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    (() => {
+      const KEY = 'softWellnessFinalPrototypeV1';
+      const meals = [
+        ['breakfast', 'Завтрак', '☀️'],
+        ['lunch', 'Обед', '🌤️'],
+        ['dinner', 'Ужин', '🌙'],
+        ['snack', 'Перекус', '🥣']
+      ];
+      const builtins = [
+        {
+          id:'chicken',
+          name:'Куриное филе запечённое',
+          emoji:'🍗',
+          cal:120,
+          p:23,
+          f:3,
+          c:0
+        },
+        {
+          id:'oats',
+          name:'Овсяные хлопья',
+          emoji:'🥣',
+          cal:370,
+          p:13,
+          f:7,
+          c:62
+        },
+        {
+          id:'rice',
+          name:'Рис жасмин варёный',
+          emoji:'🍚',
+          cal:130,
+          p:2.7,
+          f:.3,
+          c:28
+        },
+        {
+          id:'egg',
+          name:'Яйцо куриное',
+          emoji:'🥚',
+          cal:143,
+          p:13,
+          f:10,
+          c:1
+        },
+        {
+          id:'cheese',
+          name:'Сыр лёгкий',
+          emoji:'🧀',
+          cal:290,
+          p:31,
+          f:18,
+          c:1
+        },
+        {
+          id:'banana',
+          name:'Банан',
+          emoji:'🍌',
+          cal:89,
+          p:1.1,
+          f:.3,
+          c:23
+        },
+        {
+          id:'salmon',
+          name:'Лосось',
+          emoji:'🐟',
+          cal:208,
+          p:20,
+          f:13,
+          c:0
+        },
+        {
+          id:'yogurt',
+          name:'Йогурт натуральный',
+          emoji:'🥛',
+          cal:62,
+          p:4.3,
+          f:3,
+          c:4.7
+        }
+      ];
+      const defaultState = {
+        profile:{
+          name:'',
+          age:30,
+          height:175,
+          weight:72.4
+        },
+        goals:calc(72.4),
+        customProducts:[],
+        days:{},
+        weightHistory:[],
+        ui:{
+          onboarded:false,
+          profileDone:false,
+          device:'ios'
+        },
+        selectedDate:dateKey(new Date())
+      };
+      let state = load();
+      let selectedProduct = null;
+      let grams = 150;
+      let targetMeal = 'lunch';
+      let editRef = null;
+      let deferredPrompt = null;
+      const $ = selector =>
+        document.querySelector(selector);
+      const $$ = selector =>
+        [...document.querySelectorAll(selector)];
+      function calc(weight){
+        const protein = weight * 2;
+        const calories = weight * 27;
+        const fat = weight * .8;
+        const carbs = Math.max(
+          0,
+          (calories - protein * 4 - fat * 9) / 4
+        );
+        return {
+          cal:calories,
+          p:protein,
+          f:fat,
+          c:carbs
+        };
+      }
+      function dateKey(date){
+        return date.toISOString().slice(0,10);
+      }
+      function clone(object){
+        return JSON.parse(JSON.stringify(object));
+      }
+      function load(){
+        try{
+          const saved = JSON.parse(
+            localStorage.getItem(KEY) || 'null'
+          );
+          if(!saved){
+            return clone(defaultState);
+          }
+          return {
+            ...clone(defaultState),
+            ...saved,
+            profile:{
+              ...defaultState.profile,
+              ...saved.profile
+            },
+            goals:{
+              ...defaultState.goals,
+              ...saved.goals
+            },
+            ui:{
+              ...defaultState.ui,
+              ...saved.ui
+            },
+            days:saved.days || {},
+            customProducts:saved.customProducts || [],
+            weightHistory:saved.weightHistory || []
+          };
+        }catch(error){
+          return clone(defaultState);
+        }
+      }
+      function save(showNotification = true){
+        localStorage.setItem(
+          KEY,
+          JSON.stringify(state)
+        );
+        if(showNotification){
+          toast('Сохранено на устройстве');
+        }
+      }
+      function toast(text){
+        const element = $('#toast');
+        element.textContent = text;
+        element.classList.add('show');
+        clearTimeout(element.timer);
+        element.timer = setTimeout(() => {
+          element.classList.remove('show');
+        },1800);
+      }
+      function n(value, decimals = 0){
+        return Number(value).toLocaleString(
+          'ru-RU',
+          {
+            maximumFractionDigits:decimals
+          }
+        );
+      }
+      function clamp(value, minimum, maximum){
+        return Math.max(
+          minimum,
+          Math.min(maximum,value)
+        );
+      }
+      function todayData(key = state.selectedDate){
+        if(!state.days[key]){
+          state.days[key] = {
+            breakfast:[],
+            lunch:[],
+            dinner:[],
+            snack:[]
+          };
+        }
+        return state.days[key];
+      }
+      function totals(key = state.selectedDate){
+        const day = todayData(key);
+        const result = {
+          cal:0,
+          p:0,
+          f:0,
+          c:0,
+          count:0
+        };
+        Object.values(day)
+          .flat()
+          .forEach(entry => {
+            result.cal += entry.cal * entry.grams / 100;
+            result.p += entry.p * entry.grams / 100;
+            result.f += entry.f * entry.grams / 100;
+            result.c += entry.c * entry.grams / 100;
+            result.count++;
+          });
+        return result;
+      }
+      function fmtDate(key){
+        const date = new Date(key + 'T12:00:00');
+        const today = dateKey(new Date());
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        if(key === today){
+          return 'Сегодня, ' +
+            date.toLocaleDateString(
+              'ru-RU',
+              {
+                day:'numeric',
+                month:'long'
+              }
+            );
+        }
+        if(key === dateKey(yesterday)){
+          return 'Вчера, ' +
+            date.toLocaleDateString(
+              'ru-RU',
+              {
+                day:'numeric',
+                month:'long'
+              }
+            );
+        }
+        return date.toLocaleDateString(
+          'ru-RU',
+          {
+            weekday:'short',
+            day:'numeric',
+            month:'long'
+          }
+        );
+      }
+      function showScreen(name){
+        $$('.screen').forEach(screen => {
+          screen.classList.toggle(
+            'active',
+            screen.dataset.screen === name
+          );
+        });
+        $$('.nav').forEach(button => {
+          button.classList.toggle(
+            'active',
+            button.dataset.nav === name
+          );
+        });
+        const titles = {
+          diary:'Дневник',
+          add:'Добавить продукт',
+          reports:'Отчёты',
+          profile:'Профиль'
+        };
+        $('#headerTitle').textContent = titles[name];
+        $('#headerLeft').textContent =
+          name === 'add' ? '←' : '☰';
+        $('#headerRight').textContent =
+          name === 'diary'
+            ? '◫'
+            : name === 'reports'
+              ? '⚙'
+              : '⋯';
+        if(name === 'add'){
+          renderProducts();
+        }
+        if(name === 'reports'){
+          renderReports();
+        }
+        if(name === 'profile'){
+          renderProfile();
+        }
+      }
+      function renderDiary(){
+        const dayTotals = totals();
+        const goals = state.goals;
+        $('#dateLabel').textContent =
+          fmtDate(state.selectedDate);
+        $('#eatenKcal').textContent =
+          n(dayTotals.cal);
+        $('#goalKcal').textContent =
+          n(goals.cal);
+        $('#remainKcal').textContent =
+          `Осталось ${n(
+            Math.max(0,goals.cal - dayTotals.cal)
+          )} ккал`;
+        const percent = clamp(
+          dayTotals.cal / goals.cal * 100 || 0,
+          0,
+          100
+        );
+        $('#calRing').style.setProperty(
+          '--p',
+          percent
+        );
+        $('#calPercent').textContent =
+          Math.round(percent) + '%';
+        setMacro(
+          'protein',
+          dayTotals.p,
+          goals.p
+        );
+        setMacro(
+          'fat',
+          dayTotals.f,
+          goals.f
+        );
+        setMacro(
+          'carb',
+          dayTotals.c,
+          goals.c
+        );
+        renderMeals();
+      }
+      function setMacro(prefix, value, goal){
+        $('#' + prefix + 'Text').textContent =
+          `${n(value)} / ${n(goal)} г`;
+        $('#' + prefix + 'Bar')
+          .style
+          .setProperty(
+            '--w',
+            clamp(
+              value / goal * 100 || 0,
+              0,
+              100
+            ) + '%'
+          );
+      }
+      function renderMeals(){
+        const day = todayData();
+        $('#mealCards').innerHTML = meals
+          .map(([key,title,icon]) => {
+            const entries = day[key];
+            const calories = entries.reduce(
+              (sum,entry) =>
+                sum + entry.cal * entry.grams / 100,
+              0
+            );
+            const names = entries.length
+              ? entries
+                  .map(entry => entry.name)
+                  .join(', ')
+              : 'Пока пусто';
+            const entryMarkup = entries.length
+              ? entries.map((entry,index) => `
+                  <div
+                    class="entry"
+                    data-entrymeal="${key}"
+                    data-entryidx="${index}"
+                  >
+                    <div>
+                      <b>${entry.name}</b>
+                      <small>
+                        ${n(entry.grams)} г ·
+                        Б ${n(entry.p * entry.grams / 100,1)} ·
+                        Ж ${n(entry.f * entry.grams / 100,1)} ·
+                        У ${n(entry.c * entry.grams / 100,1)}
+                      </small>
+                    </div>
+                    <span>
+                      ${n(entry.cal * entry.grams / 100)}
+                      ккал
+                    </span>
+                  </div>
+                `).join('')
+              : `
+                <div class="empty-state">
+                  Нажмите «+», чтобы добавить продукт
+                </div>
+              `;
+            return `
+              <div
+                class="meal-card ${entries.length ? 'open' : ''}"
+                data-mealcard="${key}"
+              >
+                <div class="meal-head">
+                  <div class="meal-left">
+                    <div class="meal-ico">${icon}</div>
+                    <div class="meal-title">
+                      <b>${title}</b>
+                      <small>${names}</small>
+                    </div>
+                  </div>
+                  <div class="meal-kcal">
+                    <span>${n(calories)} ккал</span>
+                    <button
+                      class="round-plus"
+                      data-addmeal="${key}"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+                <div class="entry-list">
+                  ${entryMarkup}
+                </div>
+              </div>
+            `;
+          })
+          .join('');
+        $$('[data-addmeal]').forEach(button => {
+          button.onclick = event => {
+            event.stopPropagation();
+            targetMeal = button.dataset.addmeal;
+            showScreen('add');
+            selectMealPill();
+          };
+        });
+        $$('[data-mealcard]').forEach(card => {
+          card.querySelector('.meal-head').onclick = event => {
+            if(event.target.closest('button')){
+              return;
+            }
+            card.classList.toggle('open');
+          };
+        });
+        $$('[data-entrymeal]').forEach(entry => {
+          entry.onclick = () => {
+            openEntry(
+              entry.dataset.entrymeal,
+              Number(entry.dataset.entryidx)
+            );
+          };
+        });
+      }
+      function allProducts(){
+        return [
+          ...builtins,
+          ...state.customProducts
+        ];
+      }
+      function renderProducts(){
+        const query = (
+          $('#searchInput').value || ''
+        )
+          .trim()
+          .toLowerCase();
+        const list = allProducts().filter(product =>
+          product.name.toLowerCase().includes(query)
+        );
+        $('#productList').innerHTML = list.length
+          ? list.map(product => `
+              <div
+                class="product-row"
+                data-product="${product.id}"
+              >
+                <div class="food-dot">
+                  ${product.emoji || '🍽️'}
+                </div>
+                <div>
+                  <b>${product.name}</b>
+                  <small>
+                    На 100 г:
+                    ${n(product.cal)} ккал ·
+                    Б ${n(product.p,1)} ·
+                    Ж ${n(product.f,1)} ·
+                    У ${n(product.c,1)}
+                  </small>
+                </div>
+                <div class="chev">›</div>
+              </div>
+            `).join('')
+          : `
+            <div class="empty-state">
+              Ничего не найдено
+            </div>
+          `;
+        $$('[data-product]').forEach(row => {
+          row.onclick = () => {
+            selectProduct(row.dataset.product);
+          };
+        });
+      }
+      function selectProduct(id){
+        selectedProduct = allProducts()
+          .find(product => product.id === id);
+        grams = 150;
+        $('#productsView').classList.add('hidden');
+        $('#customView').classList.add('hidden');
+        $('#selectedProductView')
+          .classList
+          .remove('hidden');
+        $('#selectedEmoji').textContent =
+          selectedProduct.emoji || '🍽️';
+        $('#selectedName').textContent =
+          selectedProduct.name;
+        $('#selectedPer100').textContent =
+          `На 100 г: ${n(selectedProduct.cal)} ккал`;
+        $('#gramsRange').value = grams;
+        renderPortion();
+        renderMealPills();
+      }
+      function renderPortion(){
+        if(!selectedProduct){
+          return;
+        }
+        const multiplier = grams / 100;
+        $('#gramsText').textContent = n(grams);
+        $('#portionCalories').textContent =
+          n(selectedProduct.cal * multiplier) +
+          ' ккал';
+        $('#portionProtein').textContent =
+          n(selectedProduct.p * multiplier,1);
+        $('#portionFat').textContent =
+          n(selectedProduct.f * multiplier,1);
+        $('#portionCarbs').textContent =
+          n(selectedProduct.c * multiplier,1);
+        $('#portionKcal2').textContent =
+          n(selectedProduct.cal * multiplier);
+      }
+      function renderMealPills(){
+        const labels = {
+          breakfast:'Завтрак',
+          lunch:'Обед',
+          dinner:'Ужин',
+          snack:'Перекус'
+        };
+        $('#mealPills').innerHTML =
+          Object.entries(labels)
+            .map(([key,label]) => `
+              <button
+                class="pill ${key === targetMeal ? 'active' : ''}"
+                data-mealpill="${key}"
+              >
+                ${label}
+              </button>
+            `)
+            .join('');
+        $$('[data-mealpill]').forEach(button => {
+          button.onclick = () => {
+            targetMeal = button.dataset.mealpill;
+            renderMealPills();
+          };
+        });
+      }
+      function selectMealPill(){
+        if(selectedProduct){
+          renderMealPills();
+        }
+      }
+      function addSelected(){
+        if(!selectedProduct){
+          return;
+        }
+        todayData()[targetMeal].push({
+          ...selectedProduct,
+          grams,
+          uid:Date.now()
+        });
+        save();
+        renderDiary();
+        showScreen('diary');
+        toast('Продукт добавлен');
+      }
+      function openEntry(meal,index){
+        editRef = {
+          meal,
+          idx:index
+        };
+        const entry =
+          todayData()[meal][index];
+        $('#entryName').textContent =
+          entry.name;
+        $('#editGrams').value =
+          entry.grams;
+        $('#entryOverlay')
+          .classList
+          .add('show');
+      }
+      function closeEntry(){
+        $('#entryOverlay')
+          .classList
+          .remove('show');
+        editRef = null;
+      }
+      function saveEntry(){
+        if(!editRef){
+          return;
+        }
+        const entry =
+          todayData()[editRef.meal][editRef.idx];
+        entry.grams = clamp(
+          Number($('#editGrams').value) || 1,
+          1,
+          2000
+        );
+        save();
+        renderDiary();
+        closeEntry();
+      }
+      function deleteEntry(){
+        if(!editRef){
+          return;
+        }
+        todayData()[editRef.meal]
+          .splice(editRef.idx,1);
+        save();
+        renderDiary();
+        closeEntry();
+      }
+      function renderProfile(){
+        const profile = state.profile;
+        const goals = state.goals;
+        $('#profileName').textContent =
+          profile.name || 'Профиль';
+        $('#profileBio').textContent =
+          state.ui.profileDone
+            ? `${profile.age} лет · ${profile.height} см · ${n(profile.weight,1)} кг`
+            : 'Данные ещё не заполнены';
+        $('#profileCal').textContent =
+          n(goals.cal) + ' ккал';
+        $('#profileProtein').textContent =
+          n(goals.p) + ' г';
+        $('#profileFat').textContent =
+          n(goals.f) + ' г';
+        $('#profileCarbs').textContent =
+          n(goals.c) + ' г';
+      }
+      function renderReports(){
+        const history = state.weightHistory.length
+          ? state.weightHistory
+          : [{
+              date:dateKey(new Date()),
+              weight:state.profile.weight
+            }];
+        const weights = history
+          .slice(-8)
+          .map(item => Number(item.weight));
+        $('#reportWeight').textContent =
+          n(state.profile.weight,1) + ' кг';
+        if(weights.length > 1){
+          const difference =
+            weights[weights.length - 1] -
+            weights[0];
+          $('#reportDelta').textContent =
+            (difference <= 0 ? '− ' : '+ ') +
+            n(Math.abs(difference),1) +
+            ' кг';
+        }else{
+          $('#reportDelta').textContent =
+            'Текущий вес';
+        }
+        drawChart(weights);
+        const keys = [];
+        for(let index = 6; index >= 0; index--){
+          const date = new Date();
+          date.setDate(date.getDate() - index);
+          keys.push(dateKey(date));
+        }
+        const values = keys.map(key =>
+          totals(key)
+        );
+        const average = property =>
+          values.reduce(
+            (sum,value) =>
+              sum + value[property],
+            0
+          ) / 7;
+        $('#avgCal').textContent =
+          n(average('cal'));
+        $('#avgProtein').textContent =
+          n(average('p'));
+        $('#avgFat').textContent =
+          n(average('f'));
+        $('#avgCarbs').textContent =
+          n(average('c'));
+        const activeDays =
+          keys.filter(key =>
+            totals(key).count > 0
+          ).length;
+        $('#streakText').textContent =
+          activeDays
+            ? `${activeDays} активных дней`
+            : 'Начало пути';
+        $('#streakSub').textContent =
+          activeDays
+            ? 'Продолжайте вести дневник'
+            : 'Добавьте первый продукт в дневник';
+      }
+      function drawChart(weights){
+        const svg = $('#weightChart');
+        if(weights.length === 1){
+          weights = [
+            weights[0],
+            weights[0]
+          ];
+        }
+        const minimum =
+          Math.min(...weights) - .5;
+        const maximum =
+          Math.max(...weights) + .5;
+        const points = weights.map(
+          (value,index) => {
+            const x =
+              10 +
+              index * (
+                300 /
+                (weights.length - 1)
+              );
+            const y =
+              110 -
+              (
+                (value - minimum) /
+                (maximum - minimum || 1)
+              ) * 90;
+            return [x,y];
+          }
+        );
+        const path = points
+          .map((point,index) =>
+            (index ? 'L' : 'M') +
+            point[0] +
+            ',' +
+            point[1]
+          )
+          .join(' ');
+        svg.innerHTML = `
+          <defs>
+            <linearGradient
+              id="g"
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="1"
+            >
+              <stop
+                offset="0"
+                stop-color="#b5cfa1"
+                stop-opacity=".32"
+              />
+              <stop
+                offset="1"
+                stop-color="#b5cfa1"
+                stop-opacity="0"
+              />
+            </linearGradient>
+          </defs>
+          <path
+            d="${path}
+              L ${points[points.length - 1][0]},125
+              L ${points[0][0]},125
+              Z"
+            fill="url(#g)"
+          />
+          <path
+            d="${path}"
+            fill="none"
+            stroke="#b5cfa1"
+            stroke-width="3"
+            stroke-linecap="round"
+          />
+          ${points.map(point => `
+            <circle
+              cx="${point[0]}"
+              cy="${point[1]}"
+              r="4"
+              fill="#b5cfa1"
+            />
+          `).join('')}
+        `;
+      }
+      function openOnboarding(){
+        $('#onboardingOverlay')
+          .classList
+          .add('show');
+        renderInstallSteps();
+      }
+      function finishOnboarding(){
+        state.ui.onboarded = true;
+        save(false);
+        $('#onboardingOverlay')
+          .classList
+          .remove('show');
+        if(!state.ui.profileDone){
+          openProfile();
+        }
+      }
+      function openProfile(){
+        const profile = state.profile;
+        $('#inputName').value =
+          profile.name;
+        $('#inputAge').value =
+          profile.age;
+        $('#inputHeight').value =
+          profile.height;
+        $('#inputWeight').value =
+          profile.weight;
+        updatePreview();
+        $('#profileOverlay')
+          .classList
+          .add('show');
+      }
+      function closeProfile(){
+        $('#profileOverlay')
+          .classList
+          .remove('show');
+      }
+      function updatePreview(){
+        const weight =
+          Number($('#inputWeight').value) || 0;
+        const goals = calc(weight);
+        $('#previewCal').textContent =
+          n(goals.cal);
+        $('#previewProtein').textContent =
+          n(goals.p) + ' г';
+        $('#previewFat').textContent =
+          n(goals.f) + ' г';
+        $('#previewCarbs').textContent =
+          n(goals.c) + ' г';
+      }
+      function saveProfile(){
+        const weight =
+          Number($('#inputWeight').value);
+        if(!weight || weight < 30 || weight > 300){
+          toast('Проверьте вес');
+          return;
+        }
+        state.profile = {
+          name:$('#inputName').value.trim(),
+          age:Number($('#inputAge').value) || 30,
+          height:Number($('#inputHeight').value) || 175,
+          weight
+        };
+        state.goals = calc(weight);
+        state.ui.profileDone = true;
+        state.weightHistory.push({
+          date:dateKey(new Date()),
+          weight
+        });
+        state.weightHistory =
+          state.weightHistory.slice(-60);
+        save();
+        closeProfile();
+        renderDiary();
+        renderProfile();
+        showScreen('diary');
+      }
+      function renderInstallSteps(){
+        const ios = [
+          ['Откройте сайт в Safari и нажмите «Поделиться».'],
+          ['Выберите «На экран Домой».'],
+          ['Нажмите «Добавить».']
+        ];
+        const android = [
+          ['Откройте сайт в Chrome и нажмите меню ⋮.'],
+          ['Выберите «Установить приложение».'],
+          ['Подтвердите установку.']
+        ];
+        const steps =
+          state.ui.device === 'ios'
+            ? ios
+            : android;
+        $('#installSteps').innerHTML =
+          steps
+            .map((step,index) => `
+              <div class="step">
+                <i>${index + 1}</i>
+                <span>${step[0]}</span>
+              </div>
+            `)
+            .join('');
+        $$('[data-device]').forEach(button => {
+          button.classList.toggle(
+            'active',
+            button.dataset.device ===
+              state.ui.device
+          );
+        });
+      }
+      function exportData(){
+        const blob = new Blob(
+          [
+            JSON.stringify(
+              state,
+              null,
+              2
+            )
+          ],
+          {
+            type:'application/json'
+          }
+        );
+        const link =
+          document.createElement('a');
+        link.href =
+          URL.createObjectURL(blob);
+        link.download =
+          'soft-wellness-backup.json';
+        link.click();
+        URL.revokeObjectURL(link.href);
+      }
+      function importData(file){
+        const reader = new FileReader();
+        reader.onload = () => {
+          try{
+            state = JSON.parse(reader.result);
+            save(false);
+            renderDiary();
+            renderProfile();
+            toast(
+              'Резервная копия загружена'
+            );
+          }catch(error){
+            toast(
+              'Не удалось прочитать файл'
+            );
+          }
+        };
+        reader.readAsText(file);
+      }
+      function setClock(){
+        const date = new Date();
+        $('#clock').textContent =
+          date.toLocaleTimeString(
+            'ru-RU',
+            {
+              hour:'2-digit',
+              minute:'2-digit'
+            }
+          );
+      }
+      $$('.nav').forEach(button => {
+        button.onclick = () => {
+          showScreen(button.dataset.nav);
+        };
+      });
+      $('#prevDay').onclick = () => {
+        const date = new Date(
+          state.selectedDate +
