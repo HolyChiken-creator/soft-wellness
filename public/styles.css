@@ -192,3 +192,11 @@ button{touch-action:manipulation}
 .telegram-device-row small{display:block;margin-top:3px;color:var(--muted);font-size:11px}
 .telegram-device-row>i{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:rgba(155,190,165,.14);color:var(--sage);font-style:normal;font-size:12px}
 .telegram-device-empty{padding:13px;border:1px dashed rgba(255,255,255,.1);border-radius:14px;color:var(--muted);font-size:12px;text-align:center}
+
+
+/* 1.8: dismissible onboarding, new-device code and bot diagnostics */
+.welcome-close{position:absolute;top:14px;right:14px;z-index:8;background:rgba(15,18,16,.78);border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(12px)}
+.device-code-card{display:grid;gap:12px;text-align:center;padding:20px;border:1px solid rgba(183,208,160,.24);border-radius:22px;background:linear-gradient(180deg,rgba(183,208,160,.12),rgba(255,255,255,.025));margin-bottom:14px}
+.device-code-card small{color:var(--muted);font-size:11px}.device-code-card strong{font-size:34px;letter-spacing:.16em;color:var(--sage);font-weight:900}.device-code-card button{width:100%}
+.bot-health{display:flex;gap:11px;align-items:flex-start;padding:13px 14px;border-radius:16px;border:1px solid var(--line);margin-bottom:14px}.bot-health>i{width:10px;height:10px;border-radius:50%;margin-top:4px;flex:0 0 auto}.bot-health strong{display:block;font-size:13px}.bot-health small{display:block;margin-top:4px;color:var(--muted);font-size:11px;line-height:1.45}.bot-health.is-ready{background:rgba(183,208,160,.08);border-color:rgba(183,208,160,.22)}.bot-health.is-ready>i{background:var(--sage);box-shadow:0 0 0 5px rgba(183,208,160,.09)}.bot-health.is-error{background:rgba(255,129,120,.07);border-color:rgba(255,129,120,.22)}.bot-health.is-error>i{background:var(--danger);box-shadow:0 0 0 5px rgba(255,129,120,.08)}
+.sheet{position:relative}

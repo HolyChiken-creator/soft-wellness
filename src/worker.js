@@ -1,4 +1,4 @@
-const APP_VERSION = '1.7.1-multi-pwa-bot';
+const APP_VERSION = '1.8.0-device-code-bot-bootstrap';
 const JSON_HEADERS = {
   'content-type': 'application/json; charset=utf-8',
   'cache-control': 'no-store'
@@ -227,6 +227,87 @@ const telegramCall = async (env, method, body) => {
   return result.result;
 };
 
+const telegramBootstrapCache = new Map();
+
+const telegramWebhookSecret = async (env, origin) => {
+  const configured = text(env.TELEGRAM_WEBHOOK_SECRET, 256);
+  if (configured) return configured;
+  if (!env.TELEGRAM_BOT_TOKEN) return '';
+  return (await sha256(`soft-wellness:${origin}:${env.TELEGRAM_BOT_TOKEN}`)).slice(0, 64);
+};
+
+const bootstrapTelegramBot = async (env, origin, { force = false } = {}) => {
+  if (!env.TELEGRAM_BOT_TOKEN) {
+    return { ready: false, configured: false, error: 'TELEGRAM_BOT_TOKEN не добавлен в Cloudflare Secrets' };
+  }
+  const cached = telegramBootstrapCache.get(origin);
+  if (!force && cached && cached.expiresAt > Date.now()) return cached.result;
+
+  try {
+    const me = await telegramCall(env, 'getMe', {});
+    const username = text(me?.username || env.TELEGRAM_BOT_USERNAME, 80).replace(/^@/, '');
+    const secret = await telegramWebhookSecret(env, origin);
+    const webhookUrl = `${origin}/api/telegram/webhook`;
+    await telegramCall(env, 'setWebhook', {
+      url: webhookUrl,
+      secret_token: secret,
+      allowed_updates: ['message'],
+      drop_pending_updates: false
+    });
+
+    const warnings = [];
+    try {
+      await telegramCall(env, 'setMyCommands', {
+        commands: [
+          { command: 'start', description: 'Відкрити меню Soft Wellness' },
+          { command: 'code', description: 'Код для підключення нової PWA' },
+          { command: 'devices', description: 'Показати підключені PWA' },
+          { command: 'status', description: 'Статус нагадувань' },
+          { command: 'water', description: 'Статус води' },
+          { command: 'pause', description: 'Призупинити нагадування' },
+          { command: 'resume', description: 'Увімкнути нагадування' },
+          { command: 'version', description: 'Перевірити версію бота' },
+          { command: 'help', description: 'Допомога' }
+        ]
+      });
+    } catch (error) {
+      warnings.push(`commands: ${error.message}`);
+    }
+
+    try {
+      await telegramCall(env, 'setChatMenuButton', {
+        menu_button: {
+          type: 'web_app',
+          text: 'Soft Wellness',
+          web_app: { url: origin }
+        }
+      });
+    } catch (error) {
+      warnings.push(`menu: ${error.message}`);
+    }
+
+    const result = {
+      ready: true,
+      configured: true,
+      username,
+      webhookUrl,
+      version: APP_VERSION,
+      warnings
+    };
+    telegramBootstrapCache.set(origin, { result, expiresAt: Date.now() + 15 * 60 * 1000 });
+    return result;
+  } catch (error) {
+    const result = {
+      ready: false,
+      configured: true,
+      error: error.message || 'Не удалось настроить Telegram webhook',
+      version: APP_VERSION
+    };
+    telegramBootstrapCache.set(origin, { result, expiresAt: Date.now() + 60 * 1000 });
+    return result;
+  }
+};
+
 const greeting = (user) => (user.gender === 'female' || user.salutation === 'pani') ? 'пані' : 'пане';
 const daySeed = (date, type) => [...`${date}:${type}`].reduce((sum, char) => sum + char.charCodeAt(0), 0);
 const variant = (items, date, type) => items[daySeed(date, type) % items.length];
@@ -275,6 +356,7 @@ export class TelegramState {
       if (url.pathname === '/launch-ticket' && request.method === 'POST') return this.launchTicket(request);
       if (url.pathname === '/session' && request.method === 'POST') return this.telegramSession(await request.json());
       if (url.pathname === '/claim' && request.method === 'POST') return this.claimPwa(await request.json());
+      if (url.pathname === '/pwa-code' && request.method === 'POST') return this.createPwaCode(request);
       if (url.pathname === '/sync-state' && request.method === 'GET') return this.getSyncState(request);
       if (url.pathname === '/sync-state' && request.method === 'PUT') return this.putSyncState(request, await request.json());
       if (url.pathname === '/webhook' && request.method === 'POST') return this.webhook(await request.json());
@@ -444,6 +526,30 @@ export class TelegramState {
       return code;
     }
     throw new Error('Не удалось создать код входа для PWA');
+  }
+
+  async createPwaCode(request) {
+    const user = await this.authorize(request);
+    if (!user) return json({ error: 'Недействительный ключ общей сессии' }, 401);
+    if (!user.chatId) return json({ error: 'Сначала подключите Telegram к этой общей сессии' }, 409);
+    const code = await this.createPwaClaim(user);
+    const expiresAt = Date.now() + 10 * 60 * 1000;
+    try {
+      await this.sendBotMessage(user.chatId, user, `🔗 <b>${greeting(user)[0].toUpperCase()}${greeting(user).slice(1)}, создан код для нового устройства.</b>
+
+<code>${code}</code>
+
+Введите его во второй PWA: «Профиль → Telegram → Ввести код». Код действует 10 минут и не отключает уже подключённые устройства.`);
+    } catch (error) {
+      console.warn('Telegram PWA code confirmation failed', error.message);
+    }
+    return json({
+      code,
+      expiresAt,
+      sessionId: user.id,
+      deviceCount: pwaDeviceCount(user),
+      devices: publicDevices(user)
+    });
   }
 
   async claimPwa(payload) {
@@ -979,7 +1085,7 @@ export class TelegramState {
 const stateStub = (env) => env.TELEGRAM_STATE.get(env.TELEGRAM_STATE.idFromName('global'));
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
     if (url.pathname === '/api/health') {
@@ -987,16 +1093,18 @@ export default {
         ok: true,
         app: 'soft-wellness',
         version: APP_VERSION,
-        telegramConfigured: Boolean(env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_WEBHOOK_SECRET),
+        telegramConfigured: Boolean(env.TELEGRAM_BOT_TOKEN),
+        webhookSecretMode: env.TELEGRAM_WEBHOOK_SECRET ? 'cloudflare-secret' : 'automatic',
         time: new Date().toISOString()
       });
     }
 
     if (url.pathname === '/api/telegram/webhook') {
       if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
-      if (!env.TELEGRAM_WEBHOOK_SECRET) return json({ error: 'Telegram webhook is not configured' }, 503);
+      if (!env.TELEGRAM_BOT_TOKEN) return json({ error: 'Telegram bot token is not configured' }, 503);
+      const expectedSecret = await telegramWebhookSecret(env, url.origin);
       const secret = request.headers.get('x-telegram-bot-api-secret-token');
-      if (secret !== env.TELEGRAM_WEBHOOK_SECRET) return json({ error: 'Unauthorized' }, 401);
+      if (!expectedSecret || secret !== expectedSecret) return json({ error: 'Unauthorized' }, 401);
       const update = await request.json().catch(() => ({}));
       update._appUrl = url.origin;
       return stateStub(env).fetch('https://telegram-state/webhook', {
@@ -1006,8 +1114,25 @@ export default {
       });
     }
 
+    if (url.pathname === '/api/telegram/bootstrap') {
+      if (!['GET', 'POST'].includes(request.method)) return json({ error: 'Method not allowed' }, 405);
+      const result = await bootstrapTelegramBot(env, url.origin, { force: request.method === 'POST' });
+      return json({
+        ...result,
+        botUsername: result.username || text(env.TELEGRAM_BOT_USERNAME, 80).replace(/^@/, ''),
+        telegramFirst: true,
+        version: APP_VERSION
+      }, result.ready ? 200 : 503);
+    }
+
     if (url.pathname === '/api/telegram/config') {
-      return json({ botUsername: text(env.TELEGRAM_BOT_USERNAME, 80).replace(/^@/, ''), telegramFirst: true, version: APP_VERSION });
+      const result = await bootstrapTelegramBot(env, url.origin);
+      return json({
+        ...result,
+        botUsername: result.username || text(env.TELEGRAM_BOT_USERNAME, 80).replace(/^@/, ''),
+        telegramFirst: true,
+        version: APP_VERSION
+      }, result.ready ? 200 : 503);
     }
 
     const telegramRoutes = {
@@ -1017,7 +1142,8 @@ export default {
       '/api/telegram/link-code': ['/link-code', 'POST'],
       '/api/telegram/launch-ticket': ['/launch-ticket', 'POST'],
       '/api/telegram/session': ['/session', 'POST'],
-      '/api/telegram/claim': ['/claim', 'POST']
+      '/api/telegram/claim': ['/claim', 'POST'],
+      '/api/telegram/pwa-code': ['/pwa-code', 'POST']
     };
     if (url.pathname === '/api/sync/state') {
       if (!['GET', 'PUT'].includes(request.method)) return json({ error: 'Method not allowed' }, 405);
@@ -1088,5 +1214,7 @@ export default {
 
   async scheduled(_controller, env, ctx) {
     ctx.waitUntil(stateStub(env).fetch('https://telegram-state/dispatch', { method: 'POST' }));
+    const appUrl = validAppUrl(env.APP_URL);
+    if (appUrl) ctx.waitUntil(bootstrapTelegramBot(env, appUrl));
   }
 };

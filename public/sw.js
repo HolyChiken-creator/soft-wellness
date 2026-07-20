@@ -1,5 +1,5 @@
-const CACHE = 'soft-wellness-v12';
-const CORE = ['/', '/index.html', '/styles.css?v=12', '/app.js?v=12', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png', '/assets/welcome-character.webp'];
+const CACHE = 'soft-wellness-v13';
+const CORE = ['/', '/index.html', '/styles.css?v=13', '/app.js?v=13', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png', '/assets/welcome-character.webp'];
 const OPTIONAL = [
   'https://unpkg.com/@zxing/browser@0.2.1/umd/zxing-browser.min.js',
   'https://cdn.jsdelivr.net/npm/@zxing/browser@0.2.1/umd/zxing-browser.min.js'

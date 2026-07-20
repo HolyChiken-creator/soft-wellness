@@ -1,3 +1,4 @@
-Soft Wellness 1.7.1-multi-pwa-bot
+Soft Wellness 1.8.0-device-code-bot-bootstrap
 Bot: @soft_wellness_bot
 Verification command: /version
+New-device code: Profile → Telegram → Create code

@@ -136,11 +136,15 @@
       authStartedAt: '',
       authorizationAcknowledgedSessionId: '',
       deviceCount: 0,
-      devices: []
+      devices: [],
+      botReady: false,
+      botError: '',
+      botVersion: ''
     },
     ui: {
       onboardingComplete: false,
       profileComplete: false,
+      profilePromptDismissed: false,
       installDevice: /android/i.test(navigator.userAgent) ? 'android' : 'ios'
     }
   });
@@ -931,7 +935,7 @@
     const profile = state.profile;
     const selectedGender = profile.gender || (profile.salutation === 'pani' ? 'female' : profile.salutation === 'pan' ? 'male' : '');
     openModal(`<div class="sheet__handle"></div>
-      <div class="sheet__header"><div><h2>${firstRun ? 'Расскажите' : 'Изменить'} <em>о себе</em></h2><p>Данные остаются на устройстве. По выбранному полу бот автоматически использует обращение «пане» или «пані» — без AI.</p></div>${firstRun ? '' : '<button class="sheet__close" type="button" data-close-modal>×</button>'}</div>
+      <div class="sheet__header"><div><h2>${firstRun ? 'Расскажите' : 'Изменить'} <em>о себе</em></h2><p>Данные остаются на устройстве. По выбранному полу бот автоматически использует обращение «пане» или «пані» — без AI.</p></div><button id="dismissProfileModal" class="sheet__close" type="button" aria-label="Закрыть">×</button></div>
       <div class="sheet__body">
         <div class="field"><span>Пол для обращения в напоминаниях</span><div id="genderSelector" class="salutation-selector"><button class="${selectedGender === 'male' ? 'is-active' : ''}" data-gender="male" type="button">Мужчина · пане</button><button class="${selectedGender === 'female' ? 'is-active' : ''}" data-gender="female" type="button">Женщина · пані</button></div></div>
         <label class="field"><span>Имя</span><input id="profileInputName" maxlength="60" placeholder="Например, Михаил" value="${escapeHtml(profile.name)}"></label>
@@ -941,7 +945,7 @@
         <div class="switch-row"><span>Рассчитывать воду автоматически: вес × 30 мл</span><label class="switch"><input id="profileWaterAuto" type="checkbox" ${profile.waterGoalAuto ? 'checked' : ''}><i></i></label></div>
         <div class="preview-goals"><div class="preview-goal"><small>Калории</small><strong id="previewCalories">${format(state.goals.calories)}</strong></div><div class="preview-goal"><small>Белки</small><strong id="previewProtein">${format(state.goals.protein)} г</strong></div><div class="preview-goal"><small>Жиры</small><strong id="previewFat">${format(state.goals.fat)} г</strong></div><div class="preview-goal"><small>Углеводы</small><strong id="previewCarbs">${format(state.goals.carbs)} г</strong></div><div class="preview-goal"><small>Вода</small><strong id="previewWater">${format(state.goals.water)} мл</strong></div></div>
         <p class="reminder-note">Норма воды является настраиваемой ориентировочной целью. Потребность может меняться из-за активности, жары, беременности, болезней и рекомендаций врача.</p>
-        <div class="sheet__actions sheet__actions--single"><button id="saveProfile" class="primary-button" type="button">${firstRun ? 'Сохранить и начать' : 'Сохранить профиль'}</button></div>
+        <div class="sheet__actions ${firstRun ? '' : 'sheet__actions--single'}">${firstRun ? '<button id="skipProfileForNow" class="secondary-button" type="button">Заполнить позже</button>' : ''}<button id="saveProfile" class="primary-button" type="button">${firstRun ? 'Сохранить и начать' : 'Сохранить профиль'}</button></div>
       </div>`);
     let gender = selectedGender;
     const updatePreview = () => {
@@ -958,6 +962,14 @@
       $('#previewCarbs').textContent = `${format(goals.carbs)} г`;
       $('#previewWater').textContent = `${format(goals.water)} мл`;
     };
+    const dismissProfile = () => {
+      state.ui.profilePromptDismissed = true;
+      persist(false);
+      closeModal();
+      toast('Профиль можно заполнить позже в разделе «Профиль»');
+    };
+    $('#dismissProfileModal')?.addEventListener('click', dismissProfile);
+    $('#skipProfileForNow')?.addEventListener('click', dismissProfile);
     $$('[data-gender]').forEach((button) => button.addEventListener('click', () => {
       gender = button.dataset.gender;
       $$('[data-gender]').forEach((item) => item.classList.toggle('is-active', item === button));
@@ -983,6 +995,7 @@
       state.profile = { name: $('#profileInputName').value.trim(), gender, salutation, age, height, weight, waterGoalMl, waterGoalAuto };
       state.goals = calculateGoals(weight, waterGoalMl);
       state.ui.profileComplete = true;
+      state.ui.profilePromptDismissed = false;
       const today = dateKey(new Date());
       const existing = state.weightHistory.find((item) => item.date === today);
       if (existing) existing.weight = weight;
@@ -1012,6 +1025,7 @@
     };
 
     openModal(`<div class="sheet__handle"></div>
+      <button id="dismissOnboarding" class="sheet__close welcome-close" type="button" aria-label="Закрыть приветствие">×</button>
       <div class="welcome-art">
         <img src="/assets/welcome-character.webp" width="1292" height="684" alt="Девушка с чашкой среди комнатных растений">
         <div class="welcome-art__scrim" aria-hidden="true"></div>
@@ -1026,8 +1040,16 @@
       state.ui.onboardingComplete = true;
       persist(false);
       closeModal();
-      if (!state.ui.profileComplete) setTimeout(() => openProfileModal({ firstRun: true }), 180);
+      if (!state.ui.profileComplete && !state.ui.profilePromptDismissed) setTimeout(() => openProfileModal({ firstRun: true }), 180);
     };
+    const dismissOnboarding = () => {
+      state.ui.onboardingComplete = true;
+      state.ui.profilePromptDismissed = true;
+      persist(false);
+      closeModal();
+      toast('Настройку можно продолжить позже в профиле');
+    };
+    $('#dismissOnboarding')?.addEventListener('click', dismissOnboarding);
     $('#continueWithoutInstall').addEventListener('click', finish);
     $('#triggerInstall').addEventListener('click', async () => {
       if (deferredInstallPrompt) {
@@ -1501,17 +1523,24 @@
     }
   }
 
-  async function loadTelegramPublicConfig() {
+  async function loadTelegramPublicConfig({ force = false } = {}) {
     try {
-      const response = await fetch('/api/telegram/config', { headers: { accept: 'application/json' } });
+      const response = await fetch(force ? '/api/telegram/bootstrap' : '/api/telegram/config', {
+        method: force ? 'POST' : 'GET',
+        headers: { accept: 'application/json' }
+      });
       const result = await response.json().catch(() => ({}));
-      if (response.ok && result.botUsername) {
-        state.telegram.botUsername = result.botUsername;
-        storeStateSilently();
-      }
+      state.telegram.botUsername = result.botUsername || state.telegram.botUsername;
+      state.telegram.botReady = Boolean(result.ready);
+      state.telegram.botError = result.error || '';
+      state.telegram.botVersion = result.version || '';
+      storeStateSilently();
       return result;
-    } catch {
-      return {};
+    } catch (error) {
+      state.telegram.botReady = false;
+      state.telegram.botError = error.message || 'Нет связи с настройкой Telegram';
+      storeStateSilently();
+      return { ready: false, error: state.telegram.botError };
     }
   }
 
@@ -1604,19 +1633,58 @@
     }
   }
 
+  async function createNewDeviceCode() {
+    showSessionGate('Создаём код для нового устройства…');
+    try {
+      const result = await telegramApi('/api/telegram/pwa-code', { method: 'POST' });
+      state.telegram.deviceCount = Number(result.deviceCount || state.telegram.deviceCount || 0);
+      state.telegram.devices = Array.isArray(result.devices) ? result.devices : state.telegram.devices;
+      persist(false);
+      hideSessionGate();
+      const code = String(result.code || '').toUpperCase();
+      openModal(`<div class="sheet__handle"></div>
+        <div class="sheet__header"><div><h2>Код для <em>нового устройства</em></h2><p>Этот код подключит ещё одну PWA к текущей общей сессии и не отключит уже работающие телефоны.</p></div><button class="sheet__close" type="button" data-close-modal>×</button></div>
+        <div class="sheet__body">
+          <div class="device-code-card"><small>Одноразовый код · действует 10 минут</small><strong>${escapeHtml(code)}</strong><button id="copyDeviceCode" class="secondary-button" type="button">Скопировать код</button></div>
+          <div class="telegram-first-flow"><div><i>1</i><p><strong>Откройте PWA на втором телефоне</strong><small>Перейдите «Профиль → Telegram».</small></p></div><div><i>2</i><p><strong>Введите код</strong><small>${escapeHtml(code)}</small></p></div><div><i>3</i><p><strong>Подтвердите источник данных</strong><small>После этого оба устройства будут использовать один дневник.</small></p></div></div>
+          <div class="sheet__actions sheet__actions--single"><button id="deviceCodeDone" class="primary-button" type="button">Готово</button></div>
+        </div>`);
+      $('#copyDeviceCode')?.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(code); toast('Код скопирован'); }
+        catch { toast(`Код: ${code}`); }
+      });
+      $('#deviceCodeDone')?.addEventListener('click', closeModal);
+    } catch (error) {
+      hideSessionGate();
+      toast(error.message || 'Не удалось создать код');
+    }
+  }
+
   async function openTelegramFirstLogin() {
     const config = await loadTelegramPublicConfig();
     const username = config.botUsername || state.telegram.botUsername || '';
     const botUrl = username ? `https://t.me/${username}?start=connect` : '';
+    const botState = config.ready
+      ? '<div class="bot-health is-ready"><i></i><div><strong>Бот подключён</strong><small>Webhook настроен автоматически. Можно открывать Telegram.</small></div></div>'
+      : `<div class="bot-health is-error"><i></i><div><strong>Бот пока не готов</strong><small>${escapeHtml(config.error || 'Проверьте TELEGRAM_BOT_TOKEN в Cloudflare Secrets.')}</small></div></div>`;
     openModal(`<div class="sheet__handle"></div>
       <div class="sheet__header"><div><h2>Вход через <em>Telegram</em></h2><p>К одной Telegram-сессии можно подключить несколько PWA — например, два телефона.</p></div><button class="sheet__close" type="button" data-close-modal>×</button></div>
       <div class="sheet__body">
+        ${botState}
         <div class="telegram-first-flow"><div><i>1</i><p><strong>Откройте бота</strong><small>Натисніть кнопку «🔗 Підключити PWA».</small></p></div><div><i>2</i><p><strong>Скопируйте новый код</strong><small>Для каждого телефона нужен отдельный одноразовый код.</small></p></div><div><i>3</i><p><strong>Введите его ниже</strong><small>Первая PWA не отключится — обе будут в одной сессии.</small></p></div></div>
         <label class="field"><span>Код из Telegram</span><input id="telegramClaimInput" inputmode="text" autocomplete="one-time-code" maxlength="11" placeholder="ABCD1234" style="text-transform:uppercase;letter-spacing:.16em;font-weight:800"></label>
-        <div class="sheet__actions"><button id="openTelegramBot" class="secondary-button" type="button" ${botUrl ? '' : 'disabled'}>Открыть бота</button><button id="claimTelegramButton" class="primary-button" type="button">Подключить PWA</button></div>
+        <div class="sheet__actions"><button id="openTelegramBot" class="secondary-button" type="button" ${botUrl && config.ready ? '' : 'disabled'}>Открыть бота</button><button id="claimTelegramButton" class="primary-button" type="button">Подключить PWA</button></div>
+        ${config.ready ? '' : '<button id="retryBotSetup" class="secondary-button" style="width:100%;margin-top:9px" type="button">Повторно настроить бота</button>'}
         <p class="reminder-note">После подключения бот пришлёт подтверждение и покажет, сколько PWA сейчас работают в общей сессии.</p>
       </div>`);
     $('#openTelegramBot')?.addEventListener('click', () => { if (botUrl) window.location.href = botUrl; });
+    $('#retryBotSetup')?.addEventListener('click', async () => {
+      const result = await loadTelegramPublicConfig({ force: true });
+      closeModal();
+      if (result.ready) toast('Telegram-бот настроен');
+      else toast(result.error || 'Бот не настроен');
+      setTimeout(openTelegramFirstLogin, 120);
+    });
     $('#claimTelegramButton')?.addEventListener('click', () => claimTelegramSession($('#telegramClaimInput')?.value));
     $('#telegramClaimInput')?.addEventListener('keydown', (event) => { if (event.key === 'Enter') claimTelegramSession(event.currentTarget.value); });
   }
@@ -1634,7 +1702,7 @@
       <div class="sheet__header"><div><h2>Telegram-<em>нагадування</em></h2><p>Автономный бот без AI: утром, в обед и вечером отправляет рацион, отдельно напоминает о воде и мягкой паузе для ментального здоровья.</p></div><button class="sheet__close" type="button" data-close-modal>×</button></div>
       <div class="sheet__body">
         <div id="telegramStatusCard" class="telegram-status-card ${t.connected ? 'is-connected' : t.awaitingAuthorization ? 'is-pending' : ''}"><i class="telegram-status-card__dot"></i><div><strong>${telegramStatusCopy(t).title}</strong><small>${telegramStatusCopy(t).description}</small></div></div>
-        <div class="reminder-section telegram-devices-section"><div class="telegram-devices-heading"><div><h3>Підключені PWA</h3><p>Усі пристрої використовують один профіль і щоденник.</p></div><b>${Number(t.deviceCount || t.devices?.length || 0)}</b></div>${telegramDevicesMarkup(t.devices)}<button id="connectAnotherPwa" class="secondary-button" style="width:100%;margin-top:10px" type="button">Підключити ще одну PWA</button><p class="reminder-note">На другому телефоні відкрийте цю PWA, а в боті натисніть «🔗 Підключити PWA». Новий код не відключає перший телефон.</p></div>
+        <div class="reminder-section telegram-devices-section"><div class="telegram-devices-heading"><div><h3>Підключені PWA</h3><p>Усі пристрої використовують один профіль і щоденник.</p></div><b>${Number(t.deviceCount || t.devices?.length || 0)}</b></div>${telegramDevicesMarkup(t.devices)}<button id="connectAnotherPwa" class="primary-button" style="width:100%;margin-top:10px" type="button">Создать код для нового устройства</button><p class="reminder-note">Код появится прямо в этой PWA. Бот также получит сообщение с тем же кодом. Уже подключённые телефоны останутся активными.</p></div>
         <div class="switch-row"><span>Отправлять напоминания</span><label class="switch"><input id="telegramEnabled" type="checkbox" ${t.enabled ? 'checked' : ''}><i></i></label></div>
         <div class="reminder-section"><h3>Часовой пояс и расписание</h3>
           <label class="field"><span>Часовой пояс</span><input id="telegramTimezone" value="${escapeHtml(t.timezone || 'Europe/Kyiv')}" placeholder="Europe/Kyiv"></label>
@@ -1678,11 +1746,7 @@
     setMealFieldsState();
 
     $('#openSameTelegramSession')?.addEventListener('click', openExactTelegramSession);
-    $('#connectAnotherPwa')?.addEventListener('click', async () => {
-      const username = state.telegram.botUsername || (await loadTelegramPublicConfig()).botUsername || '';
-      if (!username) return toast('Имя Telegram-бота не настроено');
-      window.location.href = `https://t.me/${username}?start=connect`;
-    });
+    $('#connectAnotherPwa')?.addEventListener('click', createNewDeviceCode);
     $('#reconnectTelegramDevice')?.addEventListener('click', () => {
       state.telegram = { ...defaultState().telegram, botUsername: state.telegram.botUsername };
       storeStateSilently();
@@ -1966,7 +2030,7 @@
       if (state.telegram.awaitingAuthorization && !state.telegram.connected) startTelegramAuthorizationWatch();
     }
     if (!state.ui.onboardingComplete) setTimeout(openOnboardingModal, 180);
-    else if (!state.ui.profileComplete) setTimeout(() => openProfileModal({ firstRun: true }), 180);
+    else if (!state.ui.profileComplete && !state.ui.profilePromptDismissed) setTimeout(() => openProfileModal({ firstRun: true }), 220);
   }
 
   start();
