@@ -1,6 +1,6 @@
 {
   "name": "soft-wellness",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "description": "Local-first nutrition and water diary PWA with autonomous Telegram reminders on Cloudflare Workers",
   "type": "module",
@@ -12,6 +12,10 @@
     "check": "npm run check:js && wrangler deploy --dry-run"
   },
   "devDependencies": {
-    "wrangler": "^4.112.0"
+    "wrangler": "4.112.0"
+  },
+  "packageManager": "npm@10.9.2",
+  "engines": {
+    "node": ">=22 <23"
   }
 }
