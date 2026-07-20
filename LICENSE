@@ -1,21 +1,52 @@
-MIT License
+const CACHE = 'soft-wellness-v11';
+const CORE = ['/', '/index.html', '/styles.css?v=11', '/app.js?v=11', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png', '/assets/welcome-character.webp'];
+const OPTIONAL = [
+  'https://unpkg.com/@zxing/browser@0.2.1/umd/zxing-browser.min.js',
+  'https://cdn.jsdelivr.net/npm/@zxing/browser@0.2.1/umd/zxing-browser.min.js'
+];
 
-Copyright (c) 2026 Soft Wellness project owner
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE)
+      .then(async (cache) => {
+        await cache.addAll(CORE);
+        await Promise.allSettled(OPTIONAL.map((url) => cache.add(url)));
+      })
+      .then(() => self.skipWaiting())
+  );
+});
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key)))).then(() => self.clients.claim())
+  );
+});
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+self.addEventListener('fetch', (event) => {
+  const request = event.request;
+  const url = new URL(request.url);
+  if (request.method !== 'GET' || url.pathname.startsWith('/api/')) return;
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE).then((cache) => cache.put('/index.html', copy));
+          return response;
+        })
+        .catch(() => caches.match('/index.html'))
+    );
+    return;
+  }
+
+  event.respondWith(
+    caches.match(request).then((cached) => cached || fetch(request).then((response) => {
+      if (response.ok && ['basic', 'cors'].includes(response.type)) {
+        const copy = response.clone();
+        caches.open(CACHE).then((cache) => cache.put(request, copy));
+      }
+      return response;
+    }))
+  );
+});
