@@ -1,7 +1,7 @@
 {
   "name": "Soft Wellness",
   "short_name": "Wellness",
-  "description": "Локальный дневник питания и макронутриентов",
+  "description": "Дневник питания, воды и автономные Telegram-нагадування",
   "lang": "ru",
   "start_url": "/",
   "scope": "/",

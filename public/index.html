@@ -74,6 +74,23 @@
           </div>
         </article>
 
+        <article class="water-card" aria-labelledby="waterTitle">
+          <div class="water-card__icon" aria-hidden="true">💧</div>
+          <div class="water-card__content">
+            <div class="water-card__head">
+              <div><h2 id="waterTitle">Вода</h2><p id="waterCaption">0 из 2200 мл</p></div>
+              <strong id="waterPercent">0%</strong>
+            </div>
+            <div class="progress-track progress-track--water"><i id="waterProgress" style="--width:0%;--bar:#75bfe8"></i></div>
+            <div class="water-card__actions">
+              <button type="button" data-water-add="250">+ 250 мл</button>
+              <button type="button" data-water-add="500">+ 500 мл</button>
+              <button id="customWater" type="button">Другое</button>
+              <button id="undoWater" class="water-card__undo" type="button" aria-label="Уменьшить воду">−</button>
+            </div>
+          </div>
+        </article>
+
         <div class="section-heading">
           <div>
             <h2>Приёмы пищи</h2>
@@ -195,6 +212,7 @@
           <article class="stat-card"><span class="stat-card__icon stat-card__icon--sage">P</span><small>Белки</small><strong id="averageProtein">0</strong><p>г / день</p></article>
           <article class="stat-card"><span class="stat-card__icon stat-card__icon--peach">F</span><small>Жиры</small><strong id="averageFat">0</strong><p>г / день</p></article>
           <article class="stat-card"><span class="stat-card__icon stat-card__icon--blue">C</span><small>Углеводы</small><strong id="averageCarbs">0</strong><p>г / день</p></article>
+          <article class="stat-card stat-card--wide"><span class="stat-card__icon stat-card__icon--water">💧</span><small>Вода</small><strong id="averageWater">0</strong><p>мл / день</p></article>
         </div>
 
         <div class="section-heading"><div><h2>Привычка</h2><p>Регулярность ведения дневника</p></div></div>
@@ -220,6 +238,13 @@
           <div class="goal-row"><span class="goal-row__icon goal-row__icon--sage">P</span><div><small>Белки</small><strong id="profileProtein">145 г</strong></div></div>
           <div class="goal-row"><span class="goal-row__icon goal-row__icon--peach">F</span><div><small>Жиры</small><strong id="profileFat">58 г</strong></div></div>
           <div class="goal-row"><span class="goal-row__icon goal-row__icon--blue">C</span><div><small>Углеводы</small><strong id="profileCarbs">214 г</strong></div></div>
+          <div class="goal-row"><span class="goal-row__icon goal-row__icon--water">💧</span><div><small>Вода</small><strong id="profileWater">2200 мл</strong></div></div>
+        </div>
+
+        <div class="section-heading"><div><h2>Поддержка</h2><p>Автономные напоминания без AI</p></div></div>
+        <div class="settings-list">
+          <button id="telegramReminders" class="settings-row settings-row--telegram" type="button"><span class="settings-row__icon">✈</span><div><strong>Telegram-нагадування</strong><small id="telegramStatusText">Бот ещё не подключён</small></div><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
+          <button id="mentalSupport" class="settings-row" type="button"><span class="settings-row__icon">♡</span><div><strong>Ментальное здоровье</strong><small>Мягкие ежедневные паузы и забота о себе</small></div><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
         </div>
 
         <div class="section-heading"><div><h2>Приложение</h2><p>Локальные данные и установка</p></div></div>

@@ -1,8 +1,9 @@
 (() => {
   'use strict';
 
-  const STORAGE_KEY = 'softWellnessStateV4';
-  const APP_VERSION = 4;
+  const STORAGE_KEY = 'softWellnessStateV6';
+  const LEGACY_STORAGE_KEYS = ['softWellnessStateV5', 'softWellnessStateV4'];
+  const APP_VERSION = 6;
   const MEALS = [
     { id: 'breakfast', name: 'Завтрак', icon: '☀️' },
     { id: 'lunch', name: 'Обед', icon: '🌤️' },
@@ -56,23 +57,44 @@
     return local.toISOString().slice(0, 10);
   };
 
-  const calculateGoals = (weight) => {
+  const calculateWaterGoal = (weight) => Math.max(1200, Math.round((Number(weight || 0) * 30) / 50) * 50);
+
+  const calculateGoals = (weight, customWaterMl = null) => {
     const protein = weight * 2;
     const calories = weight * 27;
     const fat = weight * 0.8;
     const carbs = Math.max(0, (calories - protein * 4 - fat * 9) / 4);
-    return { calories, protein, fat, carbs };
+    const water = Number(customWaterMl) > 0 ? Number(customWaterMl) : calculateWaterGoal(weight);
+    return { calories, protein, fat, carbs, water };
   };
 
   const defaultState = () => ({
     version: APP_VERSION,
-    profile: { name: '', age: 30, height: 175, weight: 72.4 },
+    profile: { name: '', gender: '', salutation: '', age: 30, height: 175, weight: 72.4, waterGoalMl: calculateWaterGoal(72.4), waterGoalAuto: true },
     goals: calculateGoals(72.4),
     days: {},
     customFoods: [],
     recentFoodIds: ['chicken-breast', 'oats', 'rice', 'egg'],
     weightHistory: [],
     selectedDate: dateKey(new Date()),
+    telegram: {
+      authToken: '',
+      connected: false,
+      enabled: true,
+      linkCode: '',
+      botUsername: '',
+      timezone: 'Europe/Kyiv',
+      breakfastTime: '08:00',
+      lunchTime: '13:00',
+      dinnerTime: '19:00',
+      waterMorningTime: '10:30',
+      waterAfternoonTime: '16:00',
+      mentalTime: '21:00',
+      breakfastText: '',
+      lunchText: '',
+      dinnerText: '',
+      autoMealSync: true
+    },
     ui: {
       onboardingComplete: false,
       profileComplete: false,
@@ -89,17 +111,32 @@
   let reportPeriod = 7;
   let scannerStream = null;
   let deferredInstallPrompt = null;
+  let telegramSyncTimer = null;
 
   function loadState() {
     try {
-      const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+      let stored = localStorage.getItem(STORAGE_KEY);
+      if (!stored) {
+        for (const key of LEGACY_STORAGE_KEYS) {
+          stored = localStorage.getItem(key);
+          if (stored) break;
+        }
+      }
+      const raw = JSON.parse(stored || 'null');
       if (!raw || typeof raw !== 'object') return defaultState();
       const fallback = defaultState();
+      const profile = { ...fallback.profile, ...(raw.profile || {}) };
+      if (!profile.gender && profile.salutation) profile.gender = profile.salutation === 'pani' ? 'female' : 'male';
+      if (!profile.salutation && profile.gender) profile.salutation = profile.gender === 'female' ? 'pani' : 'pan';
+      if (!Number(profile.waterGoalMl)) profile.waterGoalMl = calculateWaterGoal(profile.weight);
+      if (typeof profile.waterGoalAuto !== 'boolean') profile.waterGoalAuto = true;
+      const goals = { ...calculateGoals(profile.weight, profile.waterGoalMl), ...(raw.goals || {}), water: Number(raw.goals?.water) || profile.waterGoalMl };
       return {
         ...fallback,
         ...raw,
-        profile: { ...fallback.profile, ...(raw.profile || {}) },
-        goals: { ...fallback.goals, ...(raw.goals || {}) },
+        profile,
+        goals,
+        telegram: { ...fallback.telegram, ...(raw.telegram || {}) },
         ui: { ...fallback.ui, ...(raw.ui || {}) },
         days: raw.days || {},
         customFoods: Array.isArray(raw.customFoods) ? raw.customFoods : [],
@@ -127,11 +164,13 @@
 
   function getDay(key = state.selectedDate) {
     if (!state.days[key]) {
-      state.days[key] = { breakfast: [], lunch: [], dinner: [], snack: [] };
+      state.days[key] = { breakfast: [], lunch: [], dinner: [], snack: [], waterMl: 0, waterEntries: [] };
     }
     for (const meal of MEALS) {
       if (!Array.isArray(state.days[key][meal.id])) state.days[key][meal.id] = [];
     }
+    if (!Number.isFinite(Number(state.days[key].waterMl))) state.days[key].waterMl = 0;
+    if (!Array.isArray(state.days[key].waterEntries)) state.days[key].waterEntries = [];
     return state.days[key];
   }
 
@@ -235,6 +274,7 @@
     renderMacro('protein', totals.protein, goals.protein);
     renderMacro('fat', totals.fat, goals.fat);
     renderMacro('carb', totals.carbs, goals.carbs);
+    renderWater();
     renderMealList();
     if (currentScreen === 'diary') {
       $('#screenEyebrow').textContent = dateDescription.eyebrow;
@@ -244,6 +284,52 @@
   function renderMacro(prefix, value, goal) {
     $(`#${prefix}Value`).textContent = `${format(value)} / ${format(goal)} г`;
     $(`#${prefix}Progress`).style.setProperty('--width', `${clamp((value / goal) * 100 || 0, 0, 100)}%`);
+  }
+
+  function renderWater() {
+    const day = getDay();
+    const goal = Number(state.goals.water || state.profile.waterGoalMl || calculateWaterGoal(state.profile.weight));
+    const current = Number(day.waterMl || 0);
+    const percent = clamp((current / goal) * 100 || 0, 0, 100);
+    $('#waterCaption').textContent = `${format(current)} из ${format(goal)} мл`;
+    $('#waterPercent').textContent = `${Math.round(percent)}%`;
+    $('#waterProgress').style.setProperty('--width', `${percent}%`);
+  }
+
+  function addWater(amount) {
+    const day = getDay();
+    const value = clamp(Number(amount) || 0, 0, 5000);
+    if (!value) return;
+    day.waterMl = clamp(Number(day.waterMl || 0) + value, 0, 12000);
+    day.waterEntries.push({ amount: value, at: new Date().toISOString() });
+    persist(false);
+    renderWater();
+    toast(`Добавлено ${format(value)} мл воды`);
+  }
+
+  function undoWater() {
+    const day = getDay();
+    const last = day.waterEntries.pop();
+    const amount = Number(last?.amount || 250);
+    day.waterMl = Math.max(0, Number(day.waterMl || 0) - amount);
+    persist(false);
+    renderWater();
+    toast('Последняя порция воды отменена');
+  }
+
+  function openCustomWaterModal() {
+    openModal(`<div class="sheet__handle"></div>
+      <div class="sheet__header"><div><h2>Добавить <em>воду</em></h2><p>Укажите объём, который вы выпили.</p></div><button class="sheet__close" type="button" data-close-modal>×</button></div>
+      <div class="sheet__body"><label class="field"><span>Объём, мл</span><input id="customWaterAmount" type="number" min="50" max="5000" step="50" value="250"></label><div class="sheet__actions sheet__actions--single"><button id="saveCustomWater" class="primary-button" type="button">Добавить воду</button></div></div>`);
+    $('#saveCustomWater').addEventListener('click', () => {
+      const amount = Number($('#customWaterAmount').value);
+      if (!Number.isFinite(amount) || amount < 50 || amount > 5000) {
+        toast('Проверьте объём воды');
+        return;
+      }
+      addWater(amount);
+      closeModal();
+    });
   }
 
   function renderMealList() {
@@ -380,6 +466,7 @@
     getDay()[selectedMeal].push(entry);
     state.recentFoodIds = [selectedFood.id, ...state.recentFoodIds.filter((id) => id !== selectedFood.id)].slice(0, 8);
     persist(false);
+    scheduleTelegramSync();
     toast(`${selectedFood.name} добавлен в «${selectedMealName()}»`);
     clearFoodSelection();
     navigate('diary');
@@ -500,6 +587,7 @@
       const grams = clamp(Number($('#editEntryGrams').value) || 1, 1, 3000);
       getDay()[mealId][index].grams = grams;
       persist(false);
+      scheduleTelegramSync();
       closeModal();
       renderDiary();
       toast('Запись обновлена');
@@ -507,6 +595,7 @@
     $('#deleteEntry').addEventListener('click', () => {
       getDay()[mealId].splice(index, 1);
       persist(false);
+      scheduleTelegramSync();
       closeModal();
       renderDiary();
       toast('Запись удалена');
@@ -536,12 +625,14 @@
       acc.protein += values.protein;
       acc.fat += values.fat;
       acc.carbs += values.carbs;
+      acc.water += Number(getDay(key).waterMl || 0);
       return acc;
-    }, { calories: 0, protein: 0, fat: 0, carbs: 0 });
+    }, { calories: 0, protein: 0, fat: 0, carbs: 0, water: 0 });
     $('#averageCalories').textContent = format(total.calories / reportPeriod);
     $('#averageProtein').textContent = format(total.protein / reportPeriod);
     $('#averageFat').textContent = format(total.fat / reportPeriod);
     $('#averageCarbs').textContent = format(total.carbs / reportPeriod);
+    $('#averageWater').textContent = format(total.water / reportPeriod);
 
     const streak = calculateStreak();
     $('#streakDays').textContent = String(streak);
@@ -596,13 +687,15 @@
         return;
       }
       state.profile.weight = weight;
-      state.goals = calculateGoals(weight);
+      if (state.profile.waterGoalAuto) state.profile.waterGoalMl = calculateWaterGoal(weight);
+      state.goals = calculateGoals(weight, state.profile.waterGoalMl);
       const today = dateKey(new Date());
       const existing = state.weightHistory.find((item) => item.date === today);
       if (existing) existing.weight = weight;
       else state.weightHistory.push({ date: today, weight });
       state.weightHistory.sort((a, b) => a.date.localeCompare(b.date));
       persist(false);
+      scheduleTelegramSync();
       closeModal();
       renderReports();
       renderDiary();
@@ -614,49 +707,78 @@
   function renderProfile() {
     const profile = state.profile;
     $('#profileName').textContent = profile.name || 'Профиль';
-    $('#profileBio').textContent = state.ui.profileComplete ? `${format(profile.age)} лет · ${format(profile.height)} см · ${format(profile.weight,1)} кг` : 'Заполните данные о себе';
+    const addressLabel = profile.gender === 'female' || profile.salutation === 'pani' ? 'Пані' : profile.gender === 'male' || profile.salutation === 'pan' ? 'Пан' : '';
+    $('#profileBio').textContent = state.ui.profileComplete ? `${addressLabel ? `${addressLabel} · ` : ''}${format(profile.age)} лет · ${format(profile.height)} см · ${format(profile.weight,1)} кг` : 'Заполните данные о себе';
     $('#profileCalories').textContent = `${format(state.goals.calories)} ккал`;
     $('#profileProtein').textContent = `${format(state.goals.protein)} г`;
     $('#profileFat').textContent = `${format(state.goals.fat)} г`;
     $('#profileCarbs').textContent = `${format(state.goals.carbs)} г`;
+    $('#profileWater').textContent = `${format(state.goals.water)} мл`;
+    renderTelegramStatus();
   }
 
   function openProfileModal({ firstRun = false } = {}) {
     const profile = state.profile;
+    const selectedGender = profile.gender || (profile.salutation === 'pani' ? 'female' : profile.salutation === 'pan' ? 'male' : '');
     openModal(`<div class="sheet__handle"></div>
-      <div class="sheet__header"><div><h2>${firstRun ? 'Расскажите' : 'Изменить'} <em>о себе</em></h2><p>Имя, возраст, рост и вес сохраняются только на вашем устройстве.</p></div>${firstRun ? '' : '<button class="sheet__close" type="button" data-close-modal>×</button>'}</div>
+      <div class="sheet__header"><div><h2>${firstRun ? 'Расскажите' : 'Изменить'} <em>о себе</em></h2><p>Данные остаются на устройстве. По выбранному полу бот автоматически использует обращение «пане» или «пані» — без AI.</p></div>${firstRun ? '' : '<button class="sheet__close" type="button" data-close-modal>×</button>'}</div>
       <div class="sheet__body">
+        <div class="field"><span>Пол для обращения в напоминаниях</span><div id="genderSelector" class="salutation-selector"><button class="${selectedGender === 'male' ? 'is-active' : ''}" data-gender="male" type="button">Мужчина · пане</button><button class="${selectedGender === 'female' ? 'is-active' : ''}" data-gender="female" type="button">Женщина · пані</button></div></div>
         <label class="field"><span>Имя</span><input id="profileInputName" maxlength="60" placeholder="Например, Михаил" value="${escapeHtml(profile.name)}"></label>
         <div class="field-grid"><label class="field"><span>Возраст</span><input id="profileInputAge" type="number" min="14" max="100" value="${Number(profile.age)}"></label><label class="field"><span>Рост, см</span><input id="profileInputHeight" type="number" min="120" max="230" value="${Number(profile.height)}"></label></div>
         <label class="field"><span>Вес, кг</span><input id="profileInputWeight" type="number" min="30" max="300" step="0.1" value="${Number(profile.weight)}"></label>
-        <div class="preview-goals"><div class="preview-goal"><small>Калории</small><strong id="previewCalories">${format(state.goals.calories)}</strong></div><div class="preview-goal"><small>Белки</small><strong id="previewProtein">${format(state.goals.protein)} г</strong></div><div class="preview-goal"><small>Жиры</small><strong id="previewFat">${format(state.goals.fat)} г</strong></div><div class="preview-goal"><small>Углеводы</small><strong id="previewCarbs">${format(state.goals.carbs)} г</strong></div></div>
+        <label class="field"><span>Норма воды, мл</span><input id="profileInputWater" type="number" min="800" max="8000" step="50" value="${Number(profile.waterGoalMl || calculateWaterGoal(profile.weight))}" ${profile.waterGoalAuto ? 'disabled' : ''}></label>
+        <div class="switch-row"><span>Рассчитывать воду автоматически: вес × 30 мл</span><label class="switch"><input id="profileWaterAuto" type="checkbox" ${profile.waterGoalAuto ? 'checked' : ''}><i></i></label></div>
+        <div class="preview-goals"><div class="preview-goal"><small>Калории</small><strong id="previewCalories">${format(state.goals.calories)}</strong></div><div class="preview-goal"><small>Белки</small><strong id="previewProtein">${format(state.goals.protein)} г</strong></div><div class="preview-goal"><small>Жиры</small><strong id="previewFat">${format(state.goals.fat)} г</strong></div><div class="preview-goal"><small>Углеводы</small><strong id="previewCarbs">${format(state.goals.carbs)} г</strong></div><div class="preview-goal"><small>Вода</small><strong id="previewWater">${format(state.goals.water)} мл</strong></div></div>
+        <p class="reminder-note">Норма воды является настраиваемой ориентировочной целью. Потребность может меняться из-за активности, жары, беременности, болезней и рекомендаций врача.</p>
         <div class="sheet__actions sheet__actions--single"><button id="saveProfile" class="primary-button" type="button">${firstRun ? 'Сохранить и начать' : 'Сохранить профиль'}</button></div>
       </div>`);
+    let gender = selectedGender;
     const updatePreview = () => {
       const weight = Number($('#profileInputWeight').value) || 0;
-      const goals = calculateGoals(weight);
+      const auto = $('#profileWaterAuto').checked;
+      const waterInput = $('#profileInputWater');
+      const water = auto ? calculateWaterGoal(weight) : Number(waterInput.value || 0);
+      waterInput.disabled = auto;
+      if (auto) waterInput.value = String(water);
+      const goals = calculateGoals(weight, water);
       $('#previewCalories').textContent = format(goals.calories);
       $('#previewProtein').textContent = `${format(goals.protein)} г`;
       $('#previewFat').textContent = `${format(goals.fat)} г`;
       $('#previewCarbs').textContent = `${format(goals.carbs)} г`;
+      $('#previewWater').textContent = `${format(goals.water)} мл`;
     };
+    $$('[data-gender]').forEach((button) => button.addEventListener('click', () => {
+      gender = button.dataset.gender;
+      $$('[data-gender]').forEach((item) => item.classList.toggle('is-active', item === button));
+    }));
     $('#profileInputWeight').addEventListener('input', updatePreview);
+    $('#profileInputWater').addEventListener('input', updatePreview);
+    $('#profileWaterAuto').addEventListener('change', updatePreview);
     $('#saveProfile').addEventListener('click', () => {
       const weight = Number($('#profileInputWeight').value);
       const age = Number($('#profileInputAge').value);
       const height = Number($('#profileInputHeight').value);
-      if (!Number.isFinite(weight) || weight < 30 || weight > 300 || age < 14 || age > 100 || height < 120 || height > 230) {
+      const waterGoalAuto = $('#profileWaterAuto').checked;
+      const waterGoalMl = waterGoalAuto ? calculateWaterGoal(weight) : Number($('#profileInputWater').value);
+      if (!gender) {
+        toast('Выберите: мужчина или женщина');
+        return;
+      }
+      if (!Number.isFinite(weight) || weight < 30 || weight > 300 || age < 14 || age > 100 || height < 120 || height > 230 || !Number.isFinite(waterGoalMl) || waterGoalMl < 800 || waterGoalMl > 8000) {
         toast('Проверьте данные профиля');
         return;
       }
-      state.profile = { name: $('#profileInputName').value.trim(), age, height, weight };
-      state.goals = calculateGoals(weight);
+      const salutation = gender === 'female' ? 'pani' : 'pan';
+      state.profile = { name: $('#profileInputName').value.trim(), gender, salutation, age, height, weight, waterGoalMl, waterGoalAuto };
+      state.goals = calculateGoals(weight, waterGoalMl);
       state.ui.profileComplete = true;
       const today = dateKey(new Date());
       const existing = state.weightHistory.find((item) => item.date === today);
       if (existing) existing.weight = weight;
       else state.weightHistory.push({ date: today, weight });
       persist(false);
+      scheduleTelegramSync();
       closeModal();
       renderDiary();
       renderProfile();
@@ -716,6 +838,237 @@
     state.ui.onboardingComplete = wasComplete;
   }
 
+  function renderTelegramStatus() {
+    const element = $('#telegramStatusText');
+    if (!element) return;
+    if (state.telegram.connected && state.telegram.enabled) element.textContent = 'Подключён и отправляет напоминания';
+    else if (state.telegram.connected) element.textContent = 'Подключён, напоминания приостановлены';
+    else if (state.telegram.authToken) element.textContent = 'Ожидает подтверждения в Telegram';
+    else element.textContent = 'Бот ещё не подключён';
+  }
+
+  function mealPlanText(mealId) {
+    const entries = getDay()[mealId] || [];
+    if (!entries.length) return '';
+    return entries.map((entry) => `${entry.name} — ${format(entry.grams)} г`).join(', ');
+  }
+
+  async function telegramApi(path, { method = 'GET', body = null } = {}) {
+    const headers = { accept: 'application/json' };
+    if (body) headers['content-type'] = 'application/json';
+    if (state.telegram.authToken) headers.authorization = `Bearer ${state.telegram.authToken}`;
+    const response = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || 'Telegram-сервис временно недоступен');
+    return payload;
+  }
+
+  function telegramSettingsPayload(readForm = true) {
+    const read = (id, fallback = '') => readForm && $(`#${id}`) ? $(`#${id}`).value.trim() : fallback;
+    const autoMealSync = readForm && $('#telegramAutoMealSync') ? $('#telegramAutoMealSync').checked : state.telegram.autoMealSync !== false;
+    const mealText = (mealId, fieldId, savedText) => autoMealSync ? mealPlanText(mealId) : read(fieldId, savedText || mealPlanText(mealId));
+    const gender = state.profile.gender || (state.profile.salutation === 'pani' ? 'female' : state.profile.salutation === 'pan' ? 'male' : '');
+    return {
+      name: state.profile.name,
+      gender,
+      salutation: gender === 'female' ? 'pani' : gender === 'male' ? 'pan' : '',
+      timezone: read('telegramTimezone', state.telegram.timezone || 'Europe/Kyiv'),
+      waterGoalMl: Number(state.goals.water || state.profile.waterGoalMl),
+      enabled: readForm && $('#telegramEnabled') ? $('#telegramEnabled').checked : state.telegram.enabled,
+      autoMealSync,
+      times: {
+        breakfast: read('telegramBreakfastTime', state.telegram.breakfastTime || '08:00'),
+        lunch: read('telegramLunchTime', state.telegram.lunchTime || '13:00'),
+        dinner: read('telegramDinnerTime', state.telegram.dinnerTime || '19:00'),
+        waterMorning: read('telegramWaterMorningTime', state.telegram.waterMorningTime || '10:30'),
+        waterAfternoon: read('telegramWaterAfternoonTime', state.telegram.waterAfternoonTime || '16:00'),
+        mental: read('telegramMentalTime', state.telegram.mentalTime || '21:00')
+      },
+      meals: {
+        breakfast: mealText('breakfast', 'telegramBreakfastText', state.telegram.breakfastText),
+        lunch: mealText('lunch', 'telegramLunchText', state.telegram.lunchText),
+        dinner: mealText('dinner', 'telegramDinnerText', state.telegram.dinnerText)
+      }
+    };
+  }
+
+  function scheduleTelegramSync() {
+    if (!state.telegram.authToken || !state.telegram.connected || state.telegram.enabled === false) return;
+    clearTimeout(telegramSyncTimer);
+    telegramSyncTimer = setTimeout(async () => {
+      try {
+        const payload = telegramSettingsPayload(false);
+        const result = await telegramApi('/api/telegram/settings', { method: 'PUT', body: payload });
+        applyTelegramSettings(payload, result);
+      } catch (error) {
+        console.warn('Telegram auto-sync failed', error);
+      }
+    }, 900);
+  }
+
+  function applyTelegramSettings(payload, server = {}) {
+    state.telegram = {
+      ...state.telegram,
+      authToken: server.authToken || state.telegram.authToken,
+      connected: Boolean(server.connected ?? state.telegram.connected),
+      enabled: Boolean(payload.enabled),
+      linkCode: server.linkCode || state.telegram.linkCode,
+      botUsername: server.botUsername || state.telegram.botUsername,
+      timezone: payload.timezone,
+      breakfastTime: payload.times.breakfast,
+      lunchTime: payload.times.lunch,
+      dinnerTime: payload.times.dinner,
+      waterMorningTime: payload.times.waterMorning,
+      waterAfternoonTime: payload.times.waterAfternoon,
+      mentalTime: payload.times.mental,
+      breakfastText: payload.meals.breakfast,
+      lunchText: payload.meals.lunch,
+      dinnerText: payload.meals.dinner,
+      autoMealSync: payload.autoMealSync !== false
+    };
+    persist(false);
+    renderTelegramStatus();
+  }
+
+  async function refreshTelegramStatus({ quiet = false } = {}) {
+    if (!state.telegram.authToken) return null;
+    try {
+      const status = await telegramApi('/api/telegram/status');
+      state.telegram.connected = Boolean(status.connected);
+      state.telegram.enabled = Boolean(status.enabled);
+      state.telegram.linkCode = status.linkCode || state.telegram.linkCode;
+      state.telegram.botUsername = status.botUsername || state.telegram.botUsername;
+      persist(false);
+      renderTelegramStatus();
+      return status;
+    } catch (error) {
+      if (!quiet) toast(error.message);
+      return null;
+    }
+  }
+
+  function openTelegramReminders() {
+    if (!state.profile.gender && !state.profile.salutation) {
+      toast('Сначала укажите пол в профиле');
+      openProfileModal();
+      return;
+    }
+    const t = state.telegram;
+    const breakfastText = t.breakfastText || mealPlanText('breakfast');
+    const lunchText = t.lunchText || mealPlanText('lunch');
+    const dinnerText = t.dinnerText || mealPlanText('dinner');
+    const codeBlock = t.linkCode ? `<div class="telegram-code"><div><small>Код подключения</small><strong id="telegramLinkCode">${escapeHtml(t.linkCode)}</strong></div><button id="copyTelegramCode" type="button">Копировать</button></div>` : '';
+    openModal(`<div class="sheet__handle"></div>
+      <div class="sheet__header"><div><h2>Telegram-<em>нагадування</em></h2><p>Автономный бот без AI: утром, в обед и вечером отправляет рацион, отдельно напоминает о воде и мягкой паузе для ментального здоровья.</p></div><button class="sheet__close" type="button" data-close-modal>×</button></div>
+      <div class="sheet__body">
+        <div id="telegramStatusCard" class="telegram-status-card ${t.connected ? 'is-connected' : ''}"><i class="telegram-status-card__dot"></i><div><strong>${t.connected ? 'Telegram подключён' : 'Telegram ещё не подключён'}</strong><small>${t.connected ? 'Расписание работает автономно через Cloudflare Worker.' : 'Создайте код и отправьте его боту командой /start.'}</small></div></div>
+        ${codeBlock}
+        <div class="switch-row"><span>Отправлять напоминания</span><label class="switch"><input id="telegramEnabled" type="checkbox" ${t.enabled ? 'checked' : ''}><i></i></label></div>
+        <div class="reminder-section"><h3>Часовой пояс и расписание</h3>
+          <label class="field"><span>Часовой пояс</span><input id="telegramTimezone" value="${escapeHtml(t.timezone || 'Europe/Kyiv')}" placeholder="Europe/Kyiv"></label>
+          <div class="reminder-time-grid">
+            <label class="field"><span>Завтрак</span><input id="telegramBreakfastTime" type="time" step="300" value="${escapeHtml(t.breakfastTime || '08:00')}"></label>
+            <label class="field"><span>Обед</span><input id="telegramLunchTime" type="time" step="300" value="${escapeHtml(t.lunchTime || '13:00')}"></label>
+            <label class="field"><span>Ужин</span><input id="telegramDinnerTime" type="time" step="300" value="${escapeHtml(t.dinnerTime || '19:00')}"></label>
+            <label class="field"><span>Ментальная пауза</span><input id="telegramMentalTime" type="time" step="300" value="${escapeHtml(t.mentalTime || '21:00')}"></label>
+            <label class="field"><span>Вода утром</span><input id="telegramWaterMorningTime" type="time" step="300" value="${escapeHtml(t.waterMorningTime || '10:30')}"></label>
+            <label class="field"><span>Вода днём</span><input id="telegramWaterAfternoonTime" type="time" step="300" value="${escapeHtml(t.waterAfternoonTime || '16:00')}"></label>
+          </div>
+        </div>
+        <div class="reminder-section"><h3>Рацион</h3>
+          <div class="switch-row"><span>Автоматически брать рацион из сегодняшнего дневника</span><label class="switch"><input id="telegramAutoMealSync" type="checkbox" ${t.autoMealSync !== false ? 'checked' : ''}><i></i></label></div>
+          <label class="field"><span>Утренний рацион</span><textarea id="telegramBreakfastText" placeholder="Например: овсянка, яйца и яблоко">${escapeHtml(breakfastText)}</textarea></label>
+          <label class="field"><span>Дневной рацион</span><textarea id="telegramLunchText" placeholder="Например: куриное филе, рис и овощи">${escapeHtml(lunchText)}</textarea></label>
+          <label class="field"><span>Вечерний рацион</span><textarea id="telegramDinnerText" placeholder="Например: лосось и салат">${escapeHtml(dinnerText)}</textarea></label>
+          <p class="reminder-note">При автосинхронизации изменения завтрака, обеда и ужина отправляются боту после сохранения дневника. Генеративный AI не используется: только ваш рацион и заранее написанные безопасные фразы.</p>
+        </div>
+        <div class="sheet__actions"><button id="refreshTelegramCode" class="secondary-button" type="button">${t.authToken ? 'Новый код' : 'Создать код'}</button><button id="saveTelegramSettings" class="primary-button" type="button">Сохранить</button></div>
+        ${t.botUsername ? `<a class="secondary-button" style="display:flex;align-items:center;justify-content:center;text-decoration:none;margin-top:9px" href="https://t.me/${escapeHtml(t.botUsername)}" target="_blank" rel="noreferrer">Открыть @${escapeHtml(t.botUsername)}</a>` : ''}
+      </div>`);
+
+    const setMealFieldsState = () => {
+      const automatic = $('#telegramAutoMealSync')?.checked !== false;
+      const values = {
+        telegramBreakfastText: mealPlanText('breakfast'),
+        telegramLunchText: mealPlanText('lunch'),
+        telegramDinnerText: mealPlanText('dinner')
+      };
+      for (const [id, value] of Object.entries(values)) {
+        const field = $(`#${id}`);
+        if (!field) continue;
+        field.disabled = automatic;
+        if (automatic) field.value = value;
+      }
+    };
+    $('#telegramAutoMealSync')?.addEventListener('change', setMealFieldsState);
+    setMealFieldsState();
+
+    const copyCode = async () => {
+      if (!state.telegram.linkCode) return;
+      await navigator.clipboard?.writeText(state.telegram.linkCode).catch(() => {});
+      toast('Код скопирован');
+    };
+    $('#copyTelegramCode')?.addEventListener('click', copyCode);
+
+    const registerOrRefresh = async () => {
+      const payload = telegramSettingsPayload(true);
+      try {
+        const endpoint = state.telegram.authToken ? '/api/telegram/link-code' : '/api/telegram/register';
+        const result = await telegramApi(endpoint, { method: 'POST', body: payload });
+        applyTelegramSettings(payload, result);
+        closeModal();
+        toast('Код подключения создан');
+        setTimeout(openTelegramReminders, 180);
+      } catch (error) {
+        toast(error.message);
+      }
+    };
+    $('#refreshTelegramCode').addEventListener('click', registerOrRefresh);
+    $('#saveTelegramSettings').addEventListener('click', async () => {
+      const payload = telegramSettingsPayload(true);
+      try {
+        if (!state.telegram.authToken) {
+          const result = await telegramApi('/api/telegram/register', { method: 'POST', body: payload });
+          applyTelegramSettings(payload, result);
+          closeModal();
+          toast('Настройки сохранены, подключите бота кодом');
+          setTimeout(openTelegramReminders, 180);
+          return;
+        }
+        const result = await telegramApi('/api/telegram/settings', { method: 'PUT', body: payload });
+        applyTelegramSettings(payload, result);
+        closeModal();
+        toast('Расписание Telegram сохранено');
+      } catch (error) {
+        toast(error.message);
+      }
+    });
+    refreshTelegramStatus({ quiet: true }).then((status) => {
+      if (!status || !$('#telegramStatusCard')) return;
+      const card = $('#telegramStatusCard');
+      card.classList.toggle('is-connected', status.connected);
+      card.querySelector('strong').textContent = status.connected ? 'Telegram подключён' : 'Telegram ещё не подключён';
+      card.querySelector('small').textContent = status.connected ? 'Расписание работает автономно через Cloudflare Worker.' : 'Отправьте боту команду /start с кодом подключения.';
+    });
+  }
+
+  function openMentalSupport() {
+    const current = getDay().mentalMood || '';
+    openModal(`<div class="sheet__handle"></div>
+      <div class="sheet__header"><div><h2>Мягкая <em>пауза</em></h2><p>Это не AI и не медицинская диагностика — только короткое напоминание остановиться и проверить своё состояние.</p></div><button class="sheet__close" type="button" data-close-modal>×</button></div>
+      <div class="sheet__body"><div class="mental-card"><h3>Как вы сейчас?</h3><p>Опустите плечи, сделайте три спокойных вдоха и выдоха, выпейте немного воды. Выберите состояние — оно сохранится только на устройстве.</p><div class="mental-actions"><button data-mood="calm" type="button">Спокойно</button><button data-mood="tense" type="button">Напряжённо</button><button data-mood="pause" type="button">Нужна пауза</button></div></div><p class="reminder-note">Если вам плохо, тревога сильная или состояние угрожает безопасности, обратитесь к близкому человеку или профильному специалисту.</p></div>`);
+    $$('[data-mood]').forEach((button) => {
+      if (button.dataset.mood === current) button.style.borderColor = 'rgba(183,208,160,.55)';
+      button.addEventListener('click', () => {
+        getDay().mentalMood = button.dataset.mood;
+        getDay().mentalCheckedAt = new Date().toISOString();
+        persist(false);
+        closeModal();
+        toast('Состояние отмечено');
+      });
+    });
+  }
+
   function exportState() {
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
     const link = document.createElement('a');
@@ -732,7 +1085,19 @@
       try {
         const imported = JSON.parse(String(reader.result));
         if (!imported.profile || !imported.days) throw new Error('Неверный формат');
-        state = { ...defaultState(), ...imported, ui: { ...defaultState().ui, ...(imported.ui || {}) } };
+        const fallback = defaultState();
+        const profile = { ...fallback.profile, ...(imported.profile || {}) };
+        if (!profile.gender && profile.salutation) profile.gender = profile.salutation === 'pani' ? 'female' : 'male';
+        if (!profile.salutation && profile.gender) profile.salutation = profile.gender === 'female' ? 'pani' : 'pan';
+        if (!Number(profile.waterGoalMl)) profile.waterGoalMl = calculateWaterGoal(profile.weight);
+        state = {
+          ...fallback,
+          ...imported,
+          profile,
+          goals: { ...calculateGoals(profile.weight, profile.waterGoalMl), ...(imported.goals || {}), water: Number(imported.goals?.water) || profile.waterGoalMl },
+          telegram: { ...fallback.telegram, ...(imported.telegram || {}) },
+          ui: { ...fallback.ui, ...(imported.ui || {}) }
+        };
         persist(false);
         renderDiary();
         renderProfile();
@@ -753,6 +1118,7 @@
     openModal(`<div class="sheet__handle"></div><div class="sheet__header"><div><h2>Удалить <em>все данные?</em></h2><p>Профиль, дневник, продукты и история веса будут удалены с этого устройства.</p></div><button class="sheet__close" type="button" data-close-modal>×</button></div><div class="sheet__actions"><button class="secondary-button" type="button" data-close-modal>Отмена</button><button id="confirmClear" class="danger-button" type="button">Удалить</button></div>`);
     $('#confirmClear').addEventListener('click', () => {
       localStorage.removeItem(STORAGE_KEY);
+      LEGACY_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
       state = defaultState();
       closeModal();
       renderDiary();
@@ -810,6 +1176,9 @@
     $('#nextDate').addEventListener('click', () => changeDate(1));
     $('#dateButton').addEventListener('click', () => { state.selectedDate = dateKey(new Date()); persist(false); renderDiary(); });
     $('#quickAdd').addEventListener('click', () => navigate('add'));
+    $$('[data-water-add]').forEach((button) => button.addEventListener('click', () => addWater(Number(button.dataset.waterAdd))));
+    $('#customWater').addEventListener('click', openCustomWaterModal);
+    $('#undoWater').addEventListener('click', undoWater);
     $$('.segment').forEach((button) => button.addEventListener('click', () => {
       clearFoodSelection();
       addTab = button.dataset.addTab;
@@ -833,6 +1202,8 @@
     }));
     $('#addWeight').addEventListener('click', openWeightModal);
     $('#editProfile').addEventListener('click', () => openProfileModal());
+    $('#telegramReminders').addEventListener('click', openTelegramReminders);
+    $('#mentalSupport').addEventListener('click', openMentalSupport);
     $('#installGuide').addEventListener('click', openInstallGuide);
     $('#exportData').addEventListener('click', exportState);
     $('#importData').addEventListener('change', (event) => { const [file] = event.target.files; if (file) importState(file); event.target.value = ''; });
@@ -872,6 +1243,7 @@
     renderProfile();
     renderFoodCatalog();
     navigate('diary');
+    if (state.telegram.authToken) refreshTelegramStatus({ quiet: true });
     if (!state.ui.onboardingComplete) setTimeout(openOnboardingModal, 180);
     else if (!state.ui.profileComplete) setTimeout(() => openProfileModal({ firstRun: true }), 180);
   }
