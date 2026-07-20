@@ -1,0 +1,3 @@
+Soft Wellness 1.7.1-multi-pwa-bot
+Bot: @soft_wellness_bot
+Verification command: /version
